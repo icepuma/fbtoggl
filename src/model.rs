@@ -137,7 +137,10 @@ pub struct Client {
   pub name: String,
   pub wid: u64,
   pub notes: Option<String>,
-  pub at: DateTime<Utc>,
+
+  // This shouldn't be an Option:
+  // https://github.com/toggl/toggl_api_docs/blob/master/chapters/clients.md#create-a-client
+  pub at: Option<DateTime<Utc>>,
 }
 
 impl Printer for Client {

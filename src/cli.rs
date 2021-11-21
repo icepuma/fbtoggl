@@ -61,6 +61,12 @@ pub enum TimeEntries {
 }
 
 #[derive(Parser, Debug)]
+pub struct CreateClient {
+  #[clap(long, about = "Name of the client")]
+  pub name: String,
+}
+
+#[derive(Parser, Debug)]
 pub struct CreateTimeEntry {
   #[clap(long, about = "Name of the project")]
   pub project: String,
@@ -95,7 +101,11 @@ pub struct CreateWorkdayWithPause {
 
 #[derive(Parser, Debug)]
 pub enum Clients {
+  #[clap(about = "List all clients")]
   List,
+
+  #[clap(about = "Create client (in default workspace)")]
+  Create(CreateClient),
 }
 
 pub fn output_values<T: Printer>(format: &Format, values: Vec<T>) {

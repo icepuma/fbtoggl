@@ -43,16 +43,16 @@ impl TogglClient {
   fn request<D: DeserializeOwned>(&self, method: Method, uri: &str) -> anyhow::Result<D> {
     let response = self.base_request(method, uri)?.send()?;
 
-    Self::response(response)
+    self.response(response)
   }
 
   fn request_with_body<D: DeserializeOwned, S: Serialize>(&self, method: Method, uri: &str, body: S) -> anyhow::Result<D> {
     let response = self.base_request(method, uri)?.json(&body).send()?;
 
-    Self::response(response)
+    self.response(response)
   }
 
-  fn response<D: DeserializeOwned>(response: blocking::Response) -> anyhow::Result<D> {
+  fn response<D: DeserializeOwned>(&self, response: blocking::Response) -> anyhow::Result<D> {
     match response.status() {
       StatusCode::OK | StatusCode::CREATED => Ok(response.json()?),
       status => Err(anyhow!("Error: {}", status)),
@@ -99,5 +99,16 @@ impl TogglClient {
     });
 
     self.request_with_body(Method::POST, "time_entries", body)
+  }
+
+  pub fn create_client(&self, name: &str, workspace_id: u64) -> anyhow::Result<DataWith<Client>> {
+    let body = json!({
+        "client": {
+            "name": name,
+            "wid": workspace_id
+        }
+    });
+
+    self.request_with_body(Method::POST, "clients", body)
   }
 }
