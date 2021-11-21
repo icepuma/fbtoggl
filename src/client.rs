@@ -17,18 +17,25 @@ use crate::model::TimeEntry;
 use crate::model::UserData;
 use crate::model::Workspace;
 
+#[cfg(test)]
+use mockito;
+
 pub struct TogglClient {
   base_url: Url,
   client: blocking::Client,
   api_token: String,
 }
 
-const TOGGL_BASE_URL: &str = "https://api.track.toggl.com/api/v8/";
 const CREATED_WITH: &str = "fbtoggl (https://github.com/icepuma/fbtoggl)";
 
 impl TogglClient {
   pub fn new(api_token: String) -> anyhow::Result<TogglClient> {
-    let base_url = TOGGL_BASE_URL.to_string().parse()?;
+    #[cfg(not(test))]
+    let base_url = "https://api.track.toggl.com/api/v8/".parse()?;
+
+    #[cfg(test)]
+    let base_url = mockito::server_url().parse()?;
+
     let client = blocking::Client::new();
 
     Ok(TogglClient { base_url, client, api_token })
@@ -110,5 +117,66 @@ impl TogglClient {
     });
 
     self.request_with_body(Method::POST, "clients", body)
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use mockito::mock;
+  use serde_json::json;
+
+  use crate::client::TogglClient;
+
+  #[test]
+  fn get_me() -> anyhow::Result<()> {
+    let body = json!(
+      {
+        "since": 1234567890,
+        "data": {
+          "id": 1234567,
+          "api_token": "cb7bf7efa6d652046abd2f7d84ee18c1",
+          "default_wid": 1234567,
+          "email": "ralph.bower@fkbr.org",
+          "fullname": "Ralph Bower",
+          "jquery_timeofday_format": "H:i",
+          "jquery_date_format": "Y-m-d",
+          "timeofday_format": "H:mm",
+          "date_format": "YYYY-MM-DD",
+          "store_start_and_stop_time": true,
+          "beginning_of_week": 1,
+          "language": "en_US",
+          "image_url": "https://assets.track.toggl.com/images/profile.png",
+          "sidebar_piechart": true,
+          "at": "2021-11-16T08:45:25+00:00",
+          "created_at": "2021-11-16T08:41:05+00:00",
+          "retention": 9,
+          "record_timeline": false,
+          "render_timeline": false,
+          "timeline_enabled": false,
+          "timeline_experiment": false,
+          "should_upgrade": false,
+          "timezone": "Europe/Berlin",
+          "openid_enabled": false,
+          "send_product_emails": true,
+          "send_weekly_report": true,
+          "send_timer_notifications": true,
+          "invitation": {},
+          "duration_format": "improved"
+        }
+      }
+    );
+
+    let mock = mock("GET", "/me").with_status(200).with_body(body.to_string()).expect(1).create();
+
+    {
+      let client = TogglClient::new("1971800d4d82861d8f2c1651fea4d212".to_string())?;
+      let me = client.get_me()?;
+
+      assert_eq!(me.data.email, "ralph.bower@fkbr.org");
+    }
+
+    mock.assert();
+
+    Ok(())
   }
 }

@@ -23,3 +23,4 @@ config = "0"
 toml = "0"
 dialoguer = "0"
 openssl = { version = "0.10", features = ["vendored"] }
+mockito = "0"
