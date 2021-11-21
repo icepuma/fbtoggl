@@ -7,7 +7,7 @@ pub mod time_entries;
 pub mod workspaces;
 
 fn init_client() -> anyhow::Result<TogglClient> {
-    let settings = read_settings()?;
+  let settings = read_settings()?;
 
-    TogglClient::new(settings.api_token)
+  TogglClient::new(settings.api_token)
 }
