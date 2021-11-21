@@ -227,4 +227,163 @@ mod tests {
 
     Ok(())
   }
+
+  #[test]
+  fn get_workspaces() -> anyhow::Result<()> {
+    let body = json!(
+      [
+        {
+          "id": 1234567,
+          "name": "Ralph Bower Workspace",
+          "profile": 102,
+          "premium": true,
+          "admin": true,
+          "default_hourly_rate": 0,
+          "default_currency": "EUR",
+          "only_admins_may_create_projects": false,
+          "only_admins_see_billable_rates": false,
+          "only_admins_see_team_dashboard": false,
+          "projects_billable_by_default": true,
+          "rounding": 1,
+          "rounding_minutes": 0,
+          "api_token": "febb91e4d84e2aca80532c4bc0adce53",
+          "at": "2021-11-16T08:52:59+00:00",
+          "logo_url": "https://assets.toggl.com/images/workspace.jpg",
+          "ical_url": "/ical/workspace_user/7d70663568cac5af684503681e3a4d41",
+          "ical_enabled": true
+        }
+      ]
+    );
+
+    let mock = mock("GET", "/workspaces")
+      .with_status(200)
+      .with_body(body.to_string())
+      .expect(1)
+      .create();
+
+    {
+      let client =
+        TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
+
+      let workspaces = client.get_workspaces()?;
+      let first_workspace = workspaces.first().unwrap();
+
+      assert_eq!(first_workspace.id, 1234567);
+      assert_eq!(first_workspace.name, "Ralph Bower Workspace");
+    }
+
+    mock.assert();
+
+    Ok(())
+  }
+
+  #[test]
+  fn get_workspace_clients() -> anyhow::Result<()> {
+    let body = json!(
+      [
+        {
+          "id": 1234,
+          "wid": 12345678,
+          "name": "fkbr.org",
+          "at": "2021-11-16T09:30:21+00:00"
+        },
+        {
+          "id": 2345,
+          "wid": 12345678,
+          "name": "beta male gmbh",
+          "at": "2021-11-16T08:42:34+00:00"
+        }
+      ]
+    );
+
+    let mock = mock("GET", "/workspaces/12345678/clients")
+      .with_status(200)
+      .with_body(body.to_string())
+      .expect(1)
+      .create();
+
+    {
+      let client =
+        TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
+
+      let clients = client.get_workspace_clients(12345678)?;
+      let first_client = clients.get(0).unwrap();
+      let second_client = clients.get(1).unwrap();
+
+      assert_eq!(first_client.id, 1234);
+      assert_eq!(first_client.wid, 12345678);
+      assert_eq!(first_client.name, "fkbr.org");
+
+      assert_eq!(second_client.id, 2345);
+      assert_eq!(second_client.wid, 12345678);
+      assert_eq!(second_client.name, "beta male gmbh");
+    }
+
+    mock.assert();
+
+    Ok(())
+  }
+
+  #[test]
+  fn get_time_entries() -> anyhow::Result<()> {
+    let body = json!(
+      [
+        {
+          "id": 123456789,
+          "guid": "6fbbba91487e5d911a6e51a7188e572e",
+          "wid": 1234567,
+          "pid": 123456789,
+          "billable": true,
+          "start": "2021-11-21T22:57:33+00:00",
+          "stop": "2021-11-21T22:57:37+00:00",
+          "duration": 4,
+          "description": "Wurst",
+          "duronly": false,
+          "at": "2021-11-21T22:57:37+00:00",
+          "uid": 1234567
+        },
+        {
+          "id": 987654321,
+          "guid": "159610d3532b1644e4b520f2f4f80943",
+          "wid": 1234567,
+          "pid": 123456789,
+          "billable": true,
+          "start": "2021-11-21T22:58:09+00:00",
+          "stop": "2021-11-21T22:58:12+00:00",
+          "duration": 3,
+          "description": "Kaese",
+          "duronly": false,
+          "at": "2021-11-21T22:58:12+00:00",
+          "uid": 1234567
+        }
+      ]
+    );
+
+    let mock = mock("GET", "/time_entries")
+      .with_status(200)
+      .with_body(body.to_string())
+      .expect(1)
+      .create();
+
+    {
+      let client =
+        TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
+
+      let time_entries = client.get_time_entries()?;
+      let first_time_entry = time_entries.get(0).unwrap();
+      let second_time_entry = time_entries.get(1).unwrap();
+
+      assert_eq!(first_time_entry.id, 123456789);
+      assert_eq!(first_time_entry.wid, 1234567);
+      assert_eq!(first_time_entry.description, Some("Wurst".to_string()));
+
+      assert_eq!(second_time_entry.id, 987654321);
+      assert_eq!(second_time_entry.wid, 1234567);
+      assert_eq!(second_time_entry.description, Some("Kaese".to_string()));
+    }
+
+    mock.assert();
+
+    Ok(())
+  }
 }
