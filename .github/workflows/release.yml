@@ -18,4 +18,32 @@ jobs:
       #- run: cargo publish
       - uses: docker://messense/rust-musl-cross:x86_64-musl
         with:
-          args: cargo build --release
+          args: cargo build --release && musl-strip target/x86_64-unknown-linux-musl/release/fbtoggl
+      - run: cp ./target/x86_64-unknown-linux-musl/release/fbtoggl
+      - run: sha512sum fbtoggl > fbtoggl.sha512sum
+      - id: github_release
+        uses: actions/checkout@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release fbtoggl ${{ github.ref }}
+          body: ""
+          draft: false
+          prerelease: false
+      - uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.github_release.outputs.upload_url }}
+          asset_path: ./fbtoggl
+          asset_name: fbtoggl
+          asset_content_type: application/octet-stream
+      - uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.github_release.outputs.upload_url }}
+          asset_path: ./fbtoggl.sha512sum
+          asset_name: fbtoggl.sha512sum
+          asset_content_type: text/plain
