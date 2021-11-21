@@ -16,7 +16,10 @@ pub fn init_settings_file() -> anyhow::Result<()> {
   let settings_file = xdg_dirs.get_config_file("settings.toml");
 
   if settings_file.exists() {
-    if Confirm::new().with_prompt("Override settings.toml file?").interact()? {
+    if Confirm::new()
+      .with_prompt("Override settings.toml file?")
+      .interact()?
+    {
       println!("Override settings file {:?}", settings_file);
 
       write_config_file(&settings_file)?;
@@ -32,7 +35,10 @@ pub fn init_settings_file() -> anyhow::Result<()> {
 }
 
 fn write_config_file(path: &Path) -> anyhow::Result<()> {
-  let api_token = Password::new().with_prompt("New API token").allow_empty_password(false).interact()?;
+  let api_token = Password::new()
+    .with_prompt("New API token")
+    .allow_empty_password(false)
+    .interact()?;
 
   let settings = Settings { api_token };
   let content = toml::to_string_pretty(&settings)?;

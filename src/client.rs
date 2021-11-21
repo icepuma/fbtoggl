@@ -38,36 +38,67 @@ impl TogglClient {
 
     let client = blocking::Client::new();
 
-    Ok(TogglClient { base_url, client, api_token })
+    Ok(TogglClient {
+      base_url,
+      client,
+      api_token,
+    })
   }
 
-  fn base_request(&self, method: Method, uri: &str) -> anyhow::Result<blocking::RequestBuilder> {
+  fn base_request(
+    &self,
+    method: Method,
+    uri: &str,
+  ) -> anyhow::Result<blocking::RequestBuilder> {
     let url = self.base_url.join(uri)?;
 
-    Ok(self.client.request(method, url).basic_auth(&self.api_token, Some("api_token")))
+    Ok(
+      self
+        .client
+        .request(method, url)
+        .basic_auth(&self.api_token, Some("api_token")),
+    )
   }
 
-  fn request<D: DeserializeOwned>(&self, method: Method, uri: &str) -> anyhow::Result<D> {
+  fn request<D: DeserializeOwned>(
+    &self,
+    method: Method,
+    uri: &str,
+  ) -> anyhow::Result<D> {
     let response = self.base_request(method, uri)?.send()?;
 
     self.response(response)
   }
 
-  fn request_with_body<D: DeserializeOwned, S: Serialize>(&self, method: Method, uri: &str, body: S) -> anyhow::Result<D> {
+  fn request_with_body<D: DeserializeOwned, S: Serialize>(
+    &self,
+    method: Method,
+    uri: &str,
+    body: S,
+  ) -> anyhow::Result<D> {
     let response = self.base_request(method, uri)?.json(&body).send()?;
 
     self.response(response)
   }
 
-  fn response<D: DeserializeOwned>(&self, response: blocking::Response) -> anyhow::Result<D> {
+  fn response<D: DeserializeOwned>(
+    &self,
+    response: blocking::Response,
+  ) -> anyhow::Result<D> {
     match response.status() {
       StatusCode::OK | StatusCode::CREATED => Ok(response.json()?),
       status => Err(anyhow!("Error: {}", status)),
     }
   }
 
-  pub fn get_workspace_clients(&self, workspace_id: u64) -> anyhow::Result<Vec<Client>> {
-    self.request::<Vec<Client>>(Method::GET, &format!("workspaces/{}/clients", workspace_id))
+  pub fn get_workspace_clients(
+    &self,
+    workspace_id: u64,
+  ) -> anyhow::Result<Vec<Client>> {
+    self.request::<Vec<Client>>(
+      Method::GET,
+      &format!("workspaces/{}/clients", workspace_id),
+    )
   }
 
   pub fn get_time_entries(&self) -> anyhow::Result<Vec<TimeEntry>> {
@@ -82,8 +113,14 @@ impl TogglClient {
     self.request::<SinceWith<UserData>>(Method::GET, "me")
   }
 
-  pub fn get_workspace_projects(&self, workspace_id: u64) -> anyhow::Result<Vec<Project>> {
-    self.request::<Vec<Project>>(Method::GET, &format!("workspaces/{}/projects", workspace_id))
+  pub fn get_workspace_projects(
+    &self,
+    workspace_id: u64,
+  ) -> anyhow::Result<Vec<Project>> {
+    self.request::<Vec<Project>>(
+      Method::GET,
+      &format!("workspaces/{}/projects", workspace_id),
+    )
   }
 
   pub fn create_time_entry(
@@ -108,7 +145,11 @@ impl TogglClient {
     self.request_with_body(Method::POST, "time_entries", body)
   }
 
-  pub fn create_client(&self, name: &str, workspace_id: u64) -> anyhow::Result<DataWith<Client>> {
+  pub fn create_client(
+    &self,
+    name: &str,
+    workspace_id: u64,
+  ) -> anyhow::Result<DataWith<Client>> {
     let body = json!({
         "client": {
             "name": name,
@@ -166,10 +207,15 @@ mod tests {
       }
     );
 
-    let mock = mock("GET", "/me").with_status(200).with_body(body.to_string()).expect(1).create();
+    let mock = mock("GET", "/me")
+      .with_status(200)
+      .with_body(body.to_string())
+      .expect(1)
+      .create();
 
     {
-      let client = TogglClient::new("1971800d4d82861d8f2c1651fea4d212".to_string())?;
+      let client =
+        TogglClient::new("1971800d4d82861d8f2c1651fea4d212".to_string())?;
       let me = client.get_me()?;
 
       assert_eq!(me.data.email, "ralph.bower@fkbr.org");

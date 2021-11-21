@@ -18,13 +18,19 @@ fn main() -> anyhow::Result<()> {
     SubCommand::Workspaces(_action) => commands::workspaces::list(&format)?,
 
     SubCommand::TimeEntries(action) => match action {
-      TimeEntries::CreateWorkdayWithPause(time_entry) => commands::time_entries::create_workday_with_pause(&time_entry)?,
-      TimeEntries::Create(time_entry) => commands::time_entries::create(&format, &time_entry)?,
+      TimeEntries::CreateWorkdayWithPause(time_entry) => {
+        commands::time_entries::create_workday_with_pause(&time_entry)?
+      }
+      TimeEntries::Create(time_entry) => {
+        commands::time_entries::create(&format, &time_entry)?
+      }
       TimeEntries::List => commands::time_entries::list(&format)?,
     },
 
     SubCommand::Clients(action) => match action {
-      Clients::Create(create_client) => commands::clients::create(&format, &create_client)?,
+      Clients::Create(create_client) => {
+        commands::clients::create(&format, &create_client)?
+      }
       Clients::List => commands::clients::list(&format)?,
     },
   }

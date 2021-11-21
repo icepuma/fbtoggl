@@ -1,7 +1,9 @@
 use std::ops::Div;
 
 use super::init_client;
-use crate::cli::{output_value, output_values, CreateTimeEntry, CreateWorkdayWithPause, Format};
+use crate::cli::{
+  output_value, output_values, CreateTimeEntry, CreateWorkdayWithPause, Format,
+};
 use anyhow::anyhow;
 use chrono::Duration;
 
@@ -14,7 +16,10 @@ pub fn list(format: &Format) -> anyhow::Result<()> {
   Ok(())
 }
 
-pub fn create(format: &Format, time_entry: &CreateTimeEntry) -> anyhow::Result<()> {
+pub fn create(
+  format: &Format,
+  time_entry: &CreateTimeEntry,
+) -> anyhow::Result<()> {
   let client = init_client()?;
   let me = client.get_me()?;
   let workspace_id = me.data.default_wid;
@@ -23,7 +28,10 @@ pub fn create(format: &Format, time_entry: &CreateTimeEntry) -> anyhow::Result<(
   let project = projects
     .iter()
     .find(|project| project.name == time_entry.project)
-    .ok_or(anyhow!(format!("Cannot find project='{}'", time_entry.project)))?;
+    .ok_or(anyhow!(format!(
+      "Cannot find project='{}'",
+      time_entry.project
+    )))?;
 
   let data = client.create_time_entry(
     &time_entry.description,
@@ -38,7 +46,9 @@ pub fn create(format: &Format, time_entry: &CreateTimeEntry) -> anyhow::Result<(
   Ok(())
 }
 
-pub fn create_workday_with_pause(time_entry: &CreateWorkdayWithPause) -> anyhow::Result<()> {
+pub fn create_workday_with_pause(
+  time_entry: &CreateWorkdayWithPause,
+) -> anyhow::Result<()> {
   let client = init_client()?;
   let me = client.get_me()?;
   let workspace_id = me.data.default_wid;
@@ -47,7 +57,10 @@ pub fn create_workday_with_pause(time_entry: &CreateWorkdayWithPause) -> anyhow:
   let project = projects
     .iter()
     .find(|project| project.name == time_entry.project)
-    .ok_or(anyhow!(format!("Cannot find project='{}'", time_entry.project)))?;
+    .ok_or(anyhow!(format!(
+      "Cannot find project='{}'",
+      time_entry.project
+    )))?;
 
   // https://karrierebibel.de/pausenregelung/
   let pause = if time_entry.hours >= 6.0 && time_entry.hours <= 9.0 {
@@ -79,7 +92,9 @@ pub fn create_workday_with_pause(time_entry: &CreateWorkdayWithPause) -> anyhow:
       project.id,
     )?;
 
-    let new_start = time_entry.start.as_date_time() + Duration::seconds(duration as i64) + pause;
+    let new_start = time_entry.start.as_date_time()
+      + Duration::seconds(duration as i64)
+      + pause;
 
     client.create_time_entry(
       &time_entry.description,

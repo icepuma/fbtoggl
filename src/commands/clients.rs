@@ -1,7 +1,10 @@
 use super::init_client;
 use crate::cli::{output_value, output_values, CreateClient, Format};
 
-pub fn create(format: &Format, create_client: &CreateClient) -> anyhow::Result<()> {
+pub fn create(
+  format: &Format,
+  create_client: &CreateClient,
+) -> anyhow::Result<()> {
   let client = init_client()?;
   let me = client.get_me()?;
 
