@@ -172,6 +172,7 @@ mod tests {
   use serde_json::{json, Value};
 
   use crate::client::{TogglClient, CREATED_WITH};
+  use pretty_assertions::assert_eq;
 
   #[ctor::ctor]
   fn setup() {

@@ -28,3 +28,4 @@ mockito = "0"
 [dev-dependencies]
 env_logger = "0"
 ctor = "0"
+pretty_assertions = "1"
