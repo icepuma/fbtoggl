@@ -18,7 +18,10 @@ jobs:
       #- run: cargo publish
       - uses: docker://messense/rust-musl-cross:x86_64-musl
         with:
-          args: cargo build --release && musl-strip target/x86_64-unknown-linux-musl/release/fbtoggl
+          args: cargo build --release
+      - uses: docker://messense/rust-musl-cross:x86_64-musl
+        with:
+          args: musl-strip target/x86_64-unknown-linux-musl/release/fbtoggl
       - run: cp ./target/x86_64-unknown-linux-musl/release/fbtoggl
       - run: sha512sum fbtoggl > fbtoggl.sha512sum
       - id: github_release
