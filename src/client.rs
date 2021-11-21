@@ -367,7 +367,7 @@ mod tests {
 
   #[test]
   fn create_time_entry() -> anyhow::Result<()> {
-        let request_body = json!(
+    let request_body = json!(
       {
         "time_entry": {
           "description": "Wurst",
