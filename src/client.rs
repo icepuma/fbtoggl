@@ -215,10 +215,12 @@ mod tests {
 
     {
       let client =
-        TogglClient::new("1971800d4d82861d8f2c1651fea4d212".to_string())?;
+        TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
       let me = client.get_me()?;
 
       assert_eq!(me.data.email, "ralph.bower@fkbr.org");
+      assert_eq!(me.data.api_token, "cb7bf7efa6d652046abd2f7d84ee18c1");
+      assert_eq!(me.data.fullname, "Ralph Bower");
     }
 
     mock.assert();
