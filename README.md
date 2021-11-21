@@ -2,7 +2,7 @@
 Interact with track.toggl.com via terminal.
 
 ## CI
-Status: ![example workflow](https://github.com/icepuma/fbtoggl/actions/workflows/ci.yaml/badge.svg)
+![example workflow](https://github.com/icepuma/fbtoggl/actions/workflows/ci.yaml/badge.svg)
 
 ## Installation
 * cargo
