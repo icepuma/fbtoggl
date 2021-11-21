@@ -35,6 +35,7 @@ pub fn create(
 
   let data = client.create_time_entry(
     &time_entry.description,
+    workspace_id,
     &time_entry.tags,
     time_entry.duration,
     time_entry.start.as_date_time(),
@@ -76,6 +77,7 @@ pub fn create_workday_with_pause(
 
     client.create_time_entry(
       &time_entry.description,
+      workspace_id,
       &None,
       Duration::seconds(duration as i64).num_seconds() as u64,
       time_entry.start.as_date_time(),
@@ -86,6 +88,7 @@ pub fn create_workday_with_pause(
 
     client.create_time_entry(
       &time_entry.description,
+      workspace_id,
       &None,
       Duration::seconds(duration as i64).num_seconds() as u64,
       time_entry.start.as_date_time(),
@@ -98,6 +101,7 @@ pub fn create_workday_with_pause(
 
     client.create_time_entry(
       &time_entry.description,
+      workspace_id,
       &None,
       Duration::seconds(duration as i64).num_seconds() as u64,
       new_start,

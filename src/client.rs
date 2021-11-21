@@ -126,6 +126,7 @@ impl TogglClient {
   pub fn create_time_entry(
     &self,
     description: &str,
+    workspace_id: u64,
     tags: &Option<Vec<String>>,
     duration: u64,
     start: DateTime<Utc>,
@@ -134,6 +135,7 @@ impl TogglClient {
     let body = json!({
         "time_entry": {
             "description": description,
+            "wid": workspace_id,
             "tags": tags,
             "duration": duration,
             "start": start,
@@ -163,49 +165,24 @@ impl TogglClient {
 
 #[cfg(test)]
 mod tests {
-  use mockito::mock;
-  use serde_json::json;
+  use std::str::FromStr;
 
-  use crate::client::TogglClient;
+  use chrono::{DateTime, Utc};
+  use mockito::{mock, Matcher};
+  use serde_json::{json, Value};
+
+  use crate::client::{TogglClient, CREATED_WITH};
+
+  #[ctor::ctor]
+  fn setup() {
+    std::env::set_var("RUST_LOG", "mockito=debug");
+
+    let _ = env_logger::try_init();
+  }
 
   #[test]
   fn get_me() -> anyhow::Result<()> {
-    let body = json!(
-      {
-        "since": 1234567890,
-        "data": {
-          "id": 1234567,
-          "api_token": "cb7bf7efa6d652046abd2f7d84ee18c1",
-          "default_wid": 1234567,
-          "email": "ralph.bower@fkbr.org",
-          "fullname": "Ralph Bower",
-          "jquery_timeofday_format": "H:i",
-          "jquery_date_format": "Y-m-d",
-          "timeofday_format": "H:mm",
-          "date_format": "YYYY-MM-DD",
-          "store_start_and_stop_time": true,
-          "beginning_of_week": 1,
-          "language": "en_US",
-          "image_url": "https://assets.track.toggl.com/images/profile.png",
-          "sidebar_piechart": true,
-          "at": "2021-11-16T08:45:25+00:00",
-          "created_at": "2021-11-16T08:41:05+00:00",
-          "retention": 9,
-          "record_timeline": false,
-          "render_timeline": false,
-          "timeline_enabled": false,
-          "timeline_experiment": false,
-          "should_upgrade": false,
-          "timezone": "Europe/Berlin",
-          "openid_enabled": false,
-          "send_product_emails": true,
-          "send_weekly_report": true,
-          "send_timer_notifications": true,
-          "invitation": {},
-          "duration_format": "improved"
-        }
-      }
-    );
+    let body = me();
 
     let mock = mock("GET", "/me")
       .with_status(200)
@@ -385,5 +362,117 @@ mod tests {
     mock.assert();
 
     Ok(())
+  }
+
+  #[test]
+  fn create_time_entry() -> anyhow::Result<()> {
+        let request_body = json!(
+      {
+        "time_entry": {
+          "description": "Wurst",
+          "wid": 123456789,
+          "tags": ["aa", "bb"],
+          "duration": 200,
+          "start": "2021-11-21T22:58:09Z",
+          "pid": 123456789,
+          "created_with": CREATED_WITH,
+        }
+      }
+    );
+
+    let response_body = json!(
+      {
+        "data": {
+          "id": 1234567890,
+          "wid": 123456789,
+          "pid": 123456789,
+          "billable": false,
+          "start": "2021-11-21T22:58:09Z",
+          "duration": 200,
+          "description": "Wurst",
+          "tags": [
+            "aa",
+            "bb"
+          ],
+          "duronly": false,
+          "at": "2021-11-21T22:58:09Z",
+          "uid": 123456789
+        }
+      }
+    );
+
+    let create_time_entry_mock = mock("POST", "/time_entries")
+      .with_status(200)
+      .match_body(Matcher::Json(request_body))
+      .with_body(response_body.to_string())
+      .expect(1)
+      .create();
+
+    {
+      let client =
+        TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
+
+      let create_time_entry = client.create_time_entry(
+        "Wurst",
+        123456789,
+        &Some(vec!["aa".to_string(), "bb".to_string()]),
+        200,
+        DateTime::<Utc>::from_str("2021-11-21T22:58:09Z")?,
+        123456789,
+      )?;
+
+      assert_eq!(
+        create_time_entry.data.start,
+        DateTime::<Utc>::from_str("2021-11-21T22:58:09Z")?
+      );
+      assert_eq!(create_time_entry.data.tags, vec!["aa", "bb"]);
+      assert_eq!(
+        create_time_entry.data.description,
+        Some("Wurst".to_string())
+      );
+    }
+
+    create_time_entry_mock.assert();
+
+    Ok(())
+  }
+
+  fn me() -> Value {
+    json!(
+      {
+        "since": 1234567890,
+        "data": {
+          "id": 1234567,
+          "api_token": "cb7bf7efa6d652046abd2f7d84ee18c1",
+          "default_wid": 1234567,
+          "email": "ralph.bower@fkbr.org",
+          "fullname": "Ralph Bower",
+          "jquery_timeofday_format": "H:i",
+          "jquery_date_format": "Y-m-d",
+          "timeofday_format": "H:mm",
+          "date_format": "YYYY-MM-DD",
+          "store_start_and_stop_time": true,
+          "beginning_of_week": 1,
+          "language": "en_US",
+          "image_url": "https://assets.track.toggl.com/images/profile.png",
+          "sidebar_piechart": true,
+          "at": "2021-11-16T08:45:25+00:00",
+          "created_at": "2021-11-16T08:41:05+00:00",
+          "retention": 9,
+          "record_timeline": false,
+          "render_timeline": false,
+          "timeline_enabled": false,
+          "timeline_experiment": false,
+          "should_upgrade": false,
+          "timezone": "Europe/Berlin",
+          "openid_enabled": false,
+          "send_product_emails": true,
+          "send_weekly_report": true,
+          "send_timer_notifications": true,
+          "invitation": {},
+          "duration_format": "improved"
+        }
+      }
+    )
   }
 }

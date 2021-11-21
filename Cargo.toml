@@ -24,3 +24,7 @@ toml = "0"
 dialoguer = "0"
 openssl = { version = "0.10", features = ["vendored"] }
 mockito = "0"
+
+[dev-dependencies]
+env_logger = "0"
+ctor = "0"
