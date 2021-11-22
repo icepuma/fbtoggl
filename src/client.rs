@@ -26,7 +26,7 @@ pub struct TogglClient {
   api_token: String,
 }
 
-const CREATED_WITH: &str = "fbtoggl (https://github.com/icepuma/fbtoggl)";
+pub const CREATED_WITH: &str = "fbtoggl (https://github.com/icepuma/fbtoggl)";
 
 impl TogglClient {
   pub fn new(api_token: String) -> anyhow::Result<TogglClient> {
@@ -340,6 +340,79 @@ mod tests {
       assert_eq!(second_client.id, 2345);
       assert_eq!(second_client.wid, 12345678);
       assert_eq!(second_client.name, "beta male gmbh");
+    }
+
+    mock.assert();
+
+    Ok(())
+  }
+
+  #[test]
+  fn get_workspace_projects() -> anyhow::Result<()> {
+    let body = json!(
+      [
+        {
+          "id": 123456789,
+          "wid": 1234567,
+          "cid": 87654321,
+          "name": "beta male gmbh",
+          "billable": true,
+          "is_private": true,
+          "active": true,
+          "template": false,
+          "at": "2021-11-16T09:30:22+00:00",
+          "created_at": "2021-11-16T09:30:22+00:00",
+          "color": "5",
+          "auto_estimates": false,
+          "actual_hours": 4,
+          "hex_color": "#2da608"
+        },
+        {
+          "id": 987654321,
+          "wid": 1234567,
+          "cid": 12345678,
+          "name": "fkbr.org",
+          "billable": true,
+          "is_private": false,
+          "active": true,
+          "template": false,
+          "at": "2021-11-16T08:51:21+00:00",
+          "created_at": "2021-11-16T08:42:34+00:00",
+          "color": "14",
+          "auto_estimates": false,
+          "actual_hours": 23,
+          "rate": 100,
+          "currency": "EUR",
+          "hex_color": "#525266"
+        }
+      ]
+    );
+
+    let mock = mock("GET", "/workspaces/12345678/projects")
+      .with_header(
+        "Authorization",
+        "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+      )
+      .with_status(200)
+      .with_body(body.to_string())
+      .expect(1)
+      .create();
+
+    {
+      let client =
+        TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
+
+      let projects = client.get_workspace_projects(12345678)?;
+      let first_project = projects.get(0).unwrap();
+      let second_project = projects.get(1).unwrap();
+
+      assert_eq!(first_project.id, 123456789);
+      assert_eq!(first_project.wid, 1234567);
+      assert_eq!(first_project.name, "beta male gmbh");
+
+      assert_eq!(second_project.id, 987654321);
+      assert_eq!(second_project.wid, 1234567);
+      assert_eq!(second_project.name, "fkbr.org");
     }
 
     mock.assert();
