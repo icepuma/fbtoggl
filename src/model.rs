@@ -1,10 +1,16 @@
-use std::collections::HashMap;
-use std::str::FromStr;
-
 use chrono::DateTime;
+use chrono::Datelike;
+use chrono::Duration;
+use chrono::Local;
+use chrono::NaiveDate;
+use chrono::TimeZone;
+use chrono::Timelike;
 use chrono::Utc;
+use now::DateTimeNow;
 use serde::Deserialize;
 use serde::Serialize;
+use std::collections::HashMap;
+use std::str::FromStr;
 
 pub trait Printer {
   fn to_raw(&self) -> anyhow::Result<String>;
@@ -154,15 +160,117 @@ impl Printer for Client {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub enum Range {
+  Today,
+  Yesterday,
+  ThisWeek,
+  LastWeek,
+  ThisMonth,
+  LastMonth,
+  FromTo(NaiveDate, NaiveDate),
+  Date(NaiveDate),
+}
+
+impl Range {
+  pub fn as_range(self) -> (DateTime<Local>, DateTime<Local>) {
+    match self {
+      Range::Today => {
+        let now = Local::now();
+        let start = Local
+          .ymd(now.year(), now.month(), now.day())
+          .and_hms(0, 0, 0);
+        let end = start + Duration::days(1);
+
+        (start, end)
+      }
+      Range::Yesterday => {
+        let now = Local::now() - Duration::days(1);
+
+        let start = Local
+          .ymd(now.year(), now.month(), now.day())
+          .and_hms(0, 0, 0);
+        let end = start + Duration::days(1);
+
+        (start, end)
+      }
+      Range::ThisWeek => {
+        let now = Local::now();
+
+        (now.beginning_of_week(), now.end_of_week())
+      }
+      Range::LastWeek => {
+        let now = Local::now() - Duration::weeks(1);
+
+        (now.beginning_of_week(), now.end_of_week())
+      }
+      Range::ThisMonth => {
+        let now = Local::now();
+
+        (now.beginning_of_month(), now.end_of_month())
+      }
+      Range::LastMonth => {
+        let now = Local::now();
+        let date = Local.ymd(now.year(), now.month() - 1, now.day()).and_hms(
+          now.hour(),
+          now.minute(),
+          now.second(),
+        );
+
+        (date.beginning_of_month(), date.end_of_month())
+      }
+      Range::FromTo(start_date, end_date) => {
+        let start = start_date.and_hms(0, 0, 0);
+        let end = end_date.and_hms(0, 0, 0) + Duration::days(1);
+
+        (
+          Local.from_local_datetime(&start).unwrap(),
+          Local.from_local_datetime(&end).unwrap(),
+        )
+      }
+      Range::Date(date) => {
+        let start = Local
+          .ymd(date.year(), date.month(), date.day())
+          .and_hms(0, 0, 0);
+        let end = start + Duration::days(1);
+
+        (start, end)
+      }
+    }
+  }
+}
+
+impl FromStr for Range {
+  type Err = anyhow::Error;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    match s.to_lowercase().as_str() {
+      "today" => Ok(Range::Today),
+      "yesterday" => Ok(Range::Yesterday),
+      "this-week" => Ok(Range::ThisWeek),
+      "last-week" => Ok(Range::LastWeek),
+      "this-month" => Ok(Range::ThisMonth),
+      "last-month" => Ok(Range::LastMonth),
+      from_to_or_date => match from_to_or_date.find('|') {
+        Some(index) => Ok(Range::FromTo(
+          NaiveDate::parse_from_str(&from_to_or_date[..index], "%Y-%m-%d")?,
+          NaiveDate::parse_from_str(&from_to_or_date[index + 1..], "%Y-%m-%d")?,
+        )),
+        None => Ok(Range::Date(from_to_or_date.parse()?)),
+      },
+    }
+  }
+}
+
+#[derive(Debug, Clone, Copy)]
 pub enum Start {
   Now,
-  Date(DateTime<Utc>),
+  Date(DateTime<Local>),
 }
 
 impl Start {
-  pub fn as_date_time(self) -> DateTime<Utc> {
+  pub fn as_date_time(self) -> DateTime<Local> {
     match self {
-      Start::Now => Utc::now(),
+      Start::Now => Local::now(),
       Self::Date(date) => date,
     }
   }
@@ -174,7 +282,7 @@ impl FromStr for Start {
   fn from_str(s: &str) -> Result<Self, Self::Err> {
     match s.to_lowercase().as_str() {
       "now" => Ok(Start::Now),
-      date => Ok(Start::Date(date.parse::<DateTime<Utc>>()?)),
+      date => Ok(Start::Date(DateTime::<Local>::from_str(date)?)),
     }
   }
 }

@@ -1,15 +1,19 @@
-use std::ops::Div;
-
 use super::init_client;
-use crate::cli::{
-  output_value, output_values, CreateTimeEntry, CreateWorkdayWithPause, Format,
+use crate::{
+  cli::{
+    output_value, output_values, CreateTimeEntry, CreateWorkdayWithPause,
+    Format,
+  },
+  model::Range,
 };
 use anyhow::anyhow;
 use chrono::Duration;
+use std::ops::Div;
 
-pub fn list(format: &Format) -> anyhow::Result<()> {
+pub fn list(format: &Format, range: &Range) -> anyhow::Result<()> {
   let client = init_client()?;
-  let time_entries = client.get_time_entries()?;
+
+  let time_entries = client.get_time_entries(range)?;
 
   output_values(format, time_entries);
 
@@ -118,7 +122,7 @@ mod tests {
     cli::CreateWorkdayWithPause, client::CREATED_WITH,
     commands::time_entries::create_workday_with_pause, model::Start,
   };
-  use chrono::{DateTime, Utc};
+  use chrono::{DateTime, Local};
   use mockito::{mock, Matcher};
   use serde_json::{json, Value};
   use std::str::FromStr;
@@ -158,7 +162,7 @@ mod tests {
           "description": "fkbr",
           "wid": 1234567,
           "duration": 7200,
-          "start": "2021-11-21T22:58:09Z",
+          "start": "2021-11-21T23:58:09+01:00",
           "tags": null,
           "pid": 123456789,
           "created_with": CREATED_WITH,
@@ -173,11 +177,11 @@ mod tests {
           "wid": 1234567,
           "pid": 123456789,
           "billable": false,
-          "start": "2021-11-21T22:58:09Z",
+          "start": "2021-11-21T23:58:09+01:00",
           "duration": 200,
           "description": "fkbr",
           "duronly": false,
-          "at": "2021-11-21T22:58:09Z",
+          "at": "2021-11-21T23:58:09+01:00",
           "uid": 123456789
         }
       }
@@ -197,7 +201,9 @@ mod tests {
     {
       let workday_with_pause = CreateWorkdayWithPause {
         description: "fkbr".to_string(),
-        start: Start::Date(DateTime::<Utc>::from_str("2021-11-21T22:58:09Z")?),
+        start: Start::Date(DateTime::<Local>::from_str(
+          "2021-11-21T22:58:09Z",
+        )?),
         hours: 2.0,
         project: "betamale gmbh".to_string(),
       };
@@ -240,7 +246,7 @@ mod tests {
           "description": "fkbr",
           "wid": 1234567,
           "duration": 12600,
-          "start": "2021-11-21T22:58:09Z",
+          "start": "2021-11-21T22:58:09+01:00",
           "tags": null,
           "pid": 123456789,
           "created_with": CREATED_WITH,
@@ -255,11 +261,11 @@ mod tests {
           "wid": 1234567,
           "pid": 123456789,
           "billable": false,
-          "start": "2021-11-21T22:58:09Z",
+          "start": "2021-11-21T22:58:09+01:00",
           "duration": 12600,
           "description": "fkbr",
           "duronly": false,
-          "at": "2021-11-21T22:58:09Z",
+          "at": "2021-11-21T22:58:09+01:00",
           "uid": 123456789
         }
       }
@@ -271,7 +277,7 @@ mod tests {
           "description": "fkbr",
           "wid": 1234567,
           "duration": 12600,
-          "start": "2021-11-22T02:58:09Z",
+          "start": "2021-11-22T02:58:09+01:00",
           "tags": null,
           "pid": 123456789,
           "created_with": CREATED_WITH,
@@ -286,11 +292,11 @@ mod tests {
           "wid": 1234567,
           "pid": 123456789,
           "billable": false,
-          "start": "2021-11-22T02:58:09Z",
+          "start": "2021-11-22T02:58:09+01:00",
           "duration": 12600,
           "description": "fkbr",
           "duronly": false,
-          "at": "2021-11-22T02:58:09Z",
+          "at": "2021-11-22T02:58:09+01:00",
           "uid": 123456789
         }
       }
@@ -321,7 +327,9 @@ mod tests {
     {
       let workday_with_pause = CreateWorkdayWithPause {
         description: "fkbr".to_string(),
-        start: Start::Date(DateTime::<Utc>::from_str("2021-11-21T22:58:09Z")?),
+        start: Start::Date(DateTime::<Local>::from_str(
+          "2021-11-21T22:58:09+01:00",
+        )?),
         hours: 7.0,
         project: "betamale gmbh".to_string(),
       };

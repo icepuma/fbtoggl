@@ -24,7 +24,9 @@ fn main() -> anyhow::Result<()> {
       TimeEntries::Create(time_entry) => {
         commands::time_entries::create(&format, &time_entry)?
       }
-      TimeEntries::List => commands::time_entries::list(&format)?,
+      TimeEntries::List(list_time_entries) => {
+        commands::time_entries::list(&format, &list_time_entries.range)?
+      }
     },
 
     SubCommand::Clients(action) => match action {

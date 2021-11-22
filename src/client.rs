@@ -1,6 +1,14 @@
+use crate::model::Client;
+use crate::model::DataWith;
+use crate::model::Project;
+use crate::model::Range;
+use crate::model::SinceWith;
+use crate::model::TimeEntry;
+use crate::model::UserData;
+use crate::model::Workspace;
 use anyhow::anyhow;
 use chrono::DateTime;
-use chrono::Utc;
+use chrono::Local;
 use reqwest::blocking;
 use reqwest::Method;
 use reqwest::StatusCode;
@@ -8,14 +16,6 @@ use reqwest::Url;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::json;
-
-use crate::model::Client;
-use crate::model::DataWith;
-use crate::model::Project;
-use crate::model::SinceWith;
-use crate::model::TimeEntry;
-use crate::model::UserData;
-use crate::model::Workspace;
 
 #[cfg(test)]
 use mockito;
@@ -101,8 +101,21 @@ impl TogglClient {
     )
   }
 
-  pub fn get_time_entries(&self) -> anyhow::Result<Vec<TimeEntry>> {
-    self.request::<Vec<TimeEntry>>(Method::GET, "time_entries")
+  pub fn get_time_entries(
+    &self,
+    range: &Range,
+  ) -> anyhow::Result<Vec<TimeEntry>> {
+    let (start, end) = range.as_range();
+    let start_date = start.format("%Y-%m-%dT%H:%M:%S%:z").to_string();
+    let end_date = end.format("%Y-%m-%dT%H:%M:%S%:z").to_string();
+
+    let uri = format!(
+      "time_entries?start_date={}&end_date={}",
+      urlencoding::encode(&start_date),
+      urlencoding::encode(&end_date),
+    );
+
+    self.request::<Vec<TimeEntry>>(Method::GET, &uri)
   }
 
   pub fn get_workspaces(&self) -> anyhow::Result<Vec<Workspace>> {
@@ -129,7 +142,7 @@ impl TogglClient {
     workspace_id: u64,
     tags: &Option<Vec<String>>,
     duration: u64,
-    start: DateTime<Utc>,
+    start: DateTime<Local>,
     project_id: u64,
   ) -> anyhow::Result<DataWith<TimeEntry>> {
     let body = json!({
@@ -165,8 +178,11 @@ impl TogglClient {
 
 #[cfg(test)]
 mod tests {
-  use crate::client::{TogglClient, CREATED_WITH};
-  use chrono::{DateTime, Utc};
+  use crate::{
+    client::{TogglClient, CREATED_WITH},
+    model::Range,
+  };
+  use chrono::{DateTime, Local, NaiveDate};
   use mockito::{mock, Matcher};
   use pretty_assertions::assert_eq;
   use serde_json::json;
@@ -455,7 +471,7 @@ mod tests {
       ]
     );
 
-    let mock = mock("GET", "/time_entries")
+    let mock = mock("GET", "/time_entries?start_date=2021-11-21T00%3A00%3A00%2B01%3A00&end_date=2021-11-22T00%3A00%3A00%2B01%3A00")
       .with_header(
         "Authorization",
         "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
@@ -469,7 +485,8 @@ mod tests {
       let client =
         TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
 
-      let time_entries = client.get_time_entries()?;
+      let time_entries = client
+        .get_time_entries(&Range::Date(NaiveDate::from_ymd(2021, 11, 21)))?;
       let first_time_entry = time_entries.get(0).unwrap();
       let second_time_entry = time_entries.get(1).unwrap();
 
@@ -496,7 +513,7 @@ mod tests {
           "wid": 123456789,
           "tags": ["aa", "bb"],
           "duration": 200,
-          "start": "2021-11-21T22:58:09Z",
+          "start": "2021-11-21T23:58:09+01:00",
           "pid": 123456789,
           "created_with": CREATED_WITH,
         }
@@ -510,7 +527,7 @@ mod tests {
           "wid": 123456789,
           "pid": 123456789,
           "billable": false,
-          "start": "2021-11-21T22:58:09Z",
+          "start": "2021-11-21T23:58:09+01:00",
           "duration": 200,
           "description": "Wurst",
           "tags": [
@@ -518,7 +535,7 @@ mod tests {
             "bb"
           ],
           "duronly": false,
-          "at": "2021-11-21T22:58:09Z",
+          "at": "2021-11-21T23:58:09+01:00",
           "uid": 123456789
         }
       }
@@ -544,13 +561,13 @@ mod tests {
         123456789,
         &Some(vec!["aa".to_string(), "bb".to_string()]),
         200,
-        DateTime::<Utc>::from_str("2021-11-21T22:58:09Z")?,
+        DateTime::<Local>::from_str("2021-11-21T22:58:09Z")?,
         123456789,
       )?;
 
       assert_eq!(
         created_time_entry.data.start,
-        DateTime::<Utc>::from_str("2021-11-21T22:58:09Z")?
+        DateTime::<Local>::from_str("2021-11-21T22:58:09Z")?
       );
       assert_eq!(created_time_entry.data.tags, vec!["aa", "bb"]);
       assert_eq!(

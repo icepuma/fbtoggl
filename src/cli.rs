@@ -1,6 +1,6 @@
 use clap::{ArgEnum, Parser};
 
-use crate::model::{Printer, Start};
+use crate::model::{Printer, Range, Start};
 
 pub const APP_NAME: &str = "fbtoggl";
 
@@ -51,13 +51,23 @@ pub enum Projects {
 #[derive(Parser, Debug)]
 pub enum TimeEntries {
   #[clap(about = "List all time entries")]
-  List,
+  List(ListTimeEntries),
 
   #[clap(about = "Create time entry")]
   Create(CreateTimeEntry),
 
   #[clap(about = "Create workday with pause")]
   CreateWorkdayWithPause(CreateWorkdayWithPause),
+}
+
+#[derive(Parser, Debug)]
+pub struct ListTimeEntries {
+  #[clap(
+    long,
+    about = "Start ('today', 'yesterday', 'this-week', 'last-week', 'this-month', 'last-month', ISO 8601 date '2021-11-01'), ISO 8601 date range '2021-11-01|2021-11-02'",
+    default_value = "today"
+  )]
+  pub range: Range,
 }
 
 #[derive(Parser, Debug)]
@@ -80,7 +90,11 @@ pub struct CreateTimeEntry {
   #[clap(long, about = "Duration (in minutes)")]
   pub duration: u64,
 
-  #[clap(long, about = "Start (now, ISO date)", default_value = "now")]
+  #[clap(
+    long,
+    about = "Start ('now', ISO 8601 date time '2021-11-01T00:00:00+01:00')",
+    default_value = "now"
+  )]
   pub start: Start,
 }
 
@@ -95,7 +109,11 @@ pub struct CreateWorkdayWithPause {
   #[clap(long, about = "Duration (in hours)")]
   pub hours: f64,
 
-  #[clap(long, about = "Start (now, ISO date)", default_value = "now")]
+  #[clap(
+    long,
+    about = "Start ('now', ISO 8601 date time '2021-11-01T00:00:00+01:00')",
+    default_value = "now"
+  )]
   pub start: Start,
 }
 
