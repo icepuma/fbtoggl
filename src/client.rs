@@ -165,14 +165,12 @@ impl TogglClient {
 
 #[cfg(test)]
 mod tests {
-  use std::str::FromStr;
-
+  use crate::client::{TogglClient, CREATED_WITH};
   use chrono::{DateTime, Utc};
   use mockito::{mock, Matcher};
-  use serde_json::{json, Value};
-
-  use crate::client::{TogglClient, CREATED_WITH};
   use pretty_assertions::assert_eq;
+  use serde_json::json;
+  use std::str::FromStr;
 
   #[ctor::ctor]
   fn setup() {
@@ -183,9 +181,48 @@ mod tests {
 
   #[test]
   fn get_me() -> anyhow::Result<()> {
-    let body = me();
+    let body = json!(
+      {
+        "since": 1234567890,
+        "data": {
+          "id": 1234567,
+          "api_token": "cb7bf7efa6d652046abd2f7d84ee18c1",
+          "default_wid": 1234567,
+          "email": "ralph.bower@fkbr.org",
+          "fullname": "Ralph Bower",
+          "jquery_timeofday_format": "H:i",
+          "jquery_date_format": "Y-m-d",
+          "timeofday_format": "H:mm",
+          "date_format": "YYYY-MM-DD",
+          "store_start_and_stop_time": true,
+          "beginning_of_week": 1,
+          "language": "en_US",
+          "image_url": "https://assets.track.toggl.com/images/profile.png",
+          "sidebar_piechart": true,
+          "at": "2021-11-16T08:45:25+00:00",
+          "created_at": "2021-11-16T08:41:05+00:00",
+          "retention": 9,
+          "record_timeline": false,
+          "render_timeline": false,
+          "timeline_enabled": false,
+          "timeline_experiment": false,
+          "should_upgrade": false,
+          "timezone": "Europe/Berlin",
+          "openid_enabled": false,
+          "send_product_emails": true,
+          "send_weekly_report": true,
+          "send_timer_notifications": true,
+          "invitation": {},
+          "duration_format": "improved"
+        }
+      }
+    );
 
     let mock = mock("GET", "/me")
+      .with_header(
+        "Authorization",
+        "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+      )
       .with_status(200)
       .with_body(body.to_string())
       .expect(1)
@@ -234,6 +271,10 @@ mod tests {
     );
 
     let mock = mock("GET", "/workspaces")
+      .with_header(
+        "Authorization",
+        "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+      )
       .with_status(200)
       .with_body(body.to_string())
       .expect(1)
@@ -275,6 +316,10 @@ mod tests {
     );
 
     let mock = mock("GET", "/workspaces/12345678/clients")
+      .with_header(
+        "Authorization",
+        "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+      )
       .with_status(200)
       .with_body(body.to_string())
       .expect(1)
@@ -338,6 +383,10 @@ mod tests {
     );
 
     let mock = mock("GET", "/time_entries")
+      .with_header(
+        "Authorization",
+        "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+      )
       .with_status(200)
       .with_body(body.to_string())
       .expect(1)
@@ -402,7 +451,11 @@ mod tests {
       }
     );
 
-    let create_time_entry_mock = mock("POST", "/time_entries")
+    let mock = mock("POST", "/time_entries")
+      .with_header(
+        "Authorization",
+        "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+      )
       .with_status(200)
       .match_body(Matcher::Json(request_body))
       .with_body(response_body.to_string())
@@ -413,7 +466,7 @@ mod tests {
       let client =
         TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
 
-      let create_time_entry = client.create_time_entry(
+      let created_time_entry = client.create_time_entry(
         "Wurst",
         123456789,
         &Some(vec!["aa".to_string(), "bb".to_string()]),
@@ -423,57 +476,64 @@ mod tests {
       )?;
 
       assert_eq!(
-        create_time_entry.data.start,
+        created_time_entry.data.start,
         DateTime::<Utc>::from_str("2021-11-21T22:58:09Z")?
       );
-      assert_eq!(create_time_entry.data.tags, vec!["aa", "bb"]);
+      assert_eq!(created_time_entry.data.tags, vec!["aa", "bb"]);
       assert_eq!(
-        create_time_entry.data.description,
+        created_time_entry.data.description,
         Some("Wurst".to_string())
       );
     }
 
-    create_time_entry_mock.assert();
+    mock.assert();
 
     Ok(())
   }
 
-  fn me() -> Value {
-    json!(
+  #[test]
+  fn create_client() -> anyhow::Result<()> {
+    let request_body = json!(
       {
-        "since": 1234567890,
-        "data": {
-          "id": 1234567,
-          "api_token": "cb7bf7efa6d652046abd2f7d84ee18c1",
-          "default_wid": 1234567,
-          "email": "ralph.bower@fkbr.org",
-          "fullname": "Ralph Bower",
-          "jquery_timeofday_format": "H:i",
-          "jquery_date_format": "Y-m-d",
-          "timeofday_format": "H:mm",
-          "date_format": "YYYY-MM-DD",
-          "store_start_and_stop_time": true,
-          "beginning_of_week": 1,
-          "language": "en_US",
-          "image_url": "https://assets.track.toggl.com/images/profile.png",
-          "sidebar_piechart": true,
-          "at": "2021-11-16T08:45:25+00:00",
-          "created_at": "2021-11-16T08:41:05+00:00",
-          "retention": 9,
-          "record_timeline": false,
-          "render_timeline": false,
-          "timeline_enabled": false,
-          "timeline_experiment": false,
-          "should_upgrade": false,
-          "timezone": "Europe/Berlin",
-          "openid_enabled": false,
-          "send_product_emails": true,
-          "send_weekly_report": true,
-          "send_timer_notifications": true,
-          "invitation": {},
-          "duration_format": "improved"
+        "client": {
+          "name": "fkbr.org",
+          "wid": 123456789
         }
       }
-    )
+    );
+
+    let response_body = json!(
+      {
+        "data": {
+          "id": 1234567890,
+          "wid": 123456789,
+          "name": "fkbr.org"
+        }
+      }
+    );
+
+    let mock = mock("POST", "/clients")
+      .with_header(
+        "Authorization",
+        "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+      )
+      .with_status(200)
+      .match_body(Matcher::Json(request_body))
+      .with_body(response_body.to_string())
+      .expect(1)
+      .create();
+
+    {
+      let client =
+        TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
+
+      let created_client = client.create_client("fkbr.org", 123456789)?;
+
+      assert_eq!(created_client.data.name, "fkbr.org");
+    }
+
+    mock.assert();
+
+    Ok(())
   }
 }
