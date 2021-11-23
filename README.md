@@ -23,21 +23,21 @@ WIP
 
 ### Workspaces
 ```bash
-fbtoggle workspaces list
+fbtoggl workspaces list
 ```
 
 ### Projects
 ```bash
-fbtoggle projects list
+fbtoggl projects list
 ```
 
 ### Clients
 ```bash
-fbtoggle clients list
+fbtoggl clients list
 ```
 
 ### Time entries
 
 #### Create
 ```bash
-fbtoggle create --project "<project>" --description "<description>" --duration "<duration-in-minutes>"
+fbtoggl create --project "<project>" --description "<description>" --duration "<duration-in-minutes>"
