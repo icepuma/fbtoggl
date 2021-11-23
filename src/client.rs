@@ -568,13 +568,13 @@ mod tests {
         123456789,
         &Some(vec!["aa".to_string(), "bb".to_string()]),
         200,
-        DateTime::<Local>::from_str("2021-11-21T22:58:09Z")?,
+        DateTime::<Local>::from_str("2021-11-21T23:58:09+01:00")?,
         123456789,
       )?;
 
       assert_eq!(
         created_time_entry.data.start,
-        DateTime::<Local>::from_str("2021-11-21T22:58:09Z")?
+        DateTime::<Local>::from_str("2021-11-21T23:58:09+01:00")?
       );
       assert_eq!(created_time_entry.data.tags, vec!["aa", "bb"]);
       assert_eq!(
