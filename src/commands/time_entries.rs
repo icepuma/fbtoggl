@@ -134,8 +134,15 @@ mod tests {
   #[ctor::ctor]
   fn setup() {
     std::env::set_var("RUST_LOG", "mockito=debug");
+    std::env::set_var("TZ", "Europe/Berlin");
 
     let _ = env_logger::try_init();
+  }
+
+  #[ctor::dtor]
+  fn teardown() {
+    std::env::remove_var("RUST_LOG");
+    std::env::remove_var("TZ");
   }
 
   #[test]
