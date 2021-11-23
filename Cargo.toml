@@ -3,7 +3,11 @@ name = "fbtoggl"
 version = "0.1.0"
 edition = "2021"
 authors = ["Stefan Ruzitschka <stefan@icepuma.dev>"]
-description = "Terminal client to interact with toggl.com REST api."
+description = "Terminal client to interact with track.toggl.com REST api."
+keywords = ["toggl", "track", "time-tracking", "cli", "productivity"]
+repository = "https://github.com/icepuma/fbtoggl"
+readme = "README.md"
+license = "WTFPL"
 
 [dependencies]
 clap = { version = "3.0.0-beta.5", features = [
