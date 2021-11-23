@@ -1,3 +1,4 @@
+use crate::config::read_settings;
 use crate::model::Client;
 use crate::model::DataWith;
 use crate::model::Project;
@@ -27,6 +28,12 @@ pub struct TogglClient {
 }
 
 pub const CREATED_WITH: &str = "fbtoggl (https://github.com/icepuma/fbtoggl)";
+
+pub fn init_client() -> anyhow::Result<TogglClient> {
+  let settings = read_settings()?;
+
+  TogglClient::new(settings.api_token)
+}
 
 impl TogglClient {
   pub fn new(api_token: String) -> anyhow::Result<TogglClient> {

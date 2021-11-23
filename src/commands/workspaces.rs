@@ -1,8 +1,9 @@
-use super::init_client;
-use crate::cli::{output_values, Format};
+use crate::{
+  cli::{output_values, Format},
+  client::TogglClient,
+};
 
-pub fn list(format: &Format) -> anyhow::Result<()> {
-  let client = init_client()?;
+pub fn list(format: &Format, client: &TogglClient) -> anyhow::Result<()> {
   let workspaces = client.get_workspaces()?;
 
   output_values(format, workspaces);

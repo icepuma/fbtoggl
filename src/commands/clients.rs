@@ -1,11 +1,13 @@
-use super::init_client;
-use crate::cli::{output_value, output_values, CreateClient, Format};
+use crate::{
+  cli::{output_value, output_values, CreateClient, Format},
+  client::TogglClient,
+};
 
 pub fn create(
   format: &Format,
   create_client: &CreateClient,
+  client: &TogglClient,
 ) -> anyhow::Result<()> {
-  let client = init_client()?;
   let me = client.get_me()?;
 
   let data = client.create_client(&create_client.name, me.data.default_wid)?;
@@ -15,8 +17,7 @@ pub fn create(
   Ok(())
 }
 
-pub fn list(format: &Format) -> anyhow::Result<()> {
-  let client = init_client()?;
+pub fn list(format: &Format, client: &TogglClient) -> anyhow::Result<()> {
   let me = client.get_me()?;
   let clients = client.get_workspace_clients(me.data.default_wid)?;
 

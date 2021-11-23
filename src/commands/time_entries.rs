@@ -1,18 +1,20 @@
-use super::init_client;
 use crate::{
   cli::{
     output_value, output_values, CreateTimeEntry, CreateWorkdayWithPause,
     Format,
   },
+  client::TogglClient,
   model::Range,
 };
 use anyhow::anyhow;
 use chrono::Duration;
 use std::ops::Div;
 
-pub fn list(format: &Format, range: &Range) -> anyhow::Result<()> {
-  let client = init_client()?;
-
+pub fn list(
+  format: &Format,
+  range: &Range,
+  client: &TogglClient,
+) -> anyhow::Result<()> {
   let time_entries = client.get_time_entries(range)?;
 
   output_values(format, time_entries);
@@ -23,8 +25,8 @@ pub fn list(format: &Format, range: &Range) -> anyhow::Result<()> {
 pub fn create(
   format: &Format,
   time_entry: &CreateTimeEntry,
+  client: &TogglClient,
 ) -> anyhow::Result<()> {
-  let client = init_client()?;
   let me = client.get_me()?;
   let workspace_id = me.data.default_wid;
   let projects = client.get_workspace_projects(workspace_id)?;
@@ -53,8 +55,8 @@ pub fn create(
 
 pub fn create_workday_with_pause(
   time_entry: &CreateWorkdayWithPause,
+  client: &TogglClient,
 ) -> anyhow::Result<()> {
-  let client = init_client()?;
   let me = client.get_me()?;
   let workspace_id = me.data.default_wid;
   let projects = client.get_workspace_projects(workspace_id)?;
@@ -119,8 +121,10 @@ pub fn create_workday_with_pause(
 #[cfg(test)]
 mod tests {
   use crate::{
-    cli::CreateWorkdayWithPause, client::CREATED_WITH,
-    commands::time_entries::create_workday_with_pause, model::Start,
+    cli::CreateWorkdayWithPause,
+    client::{TogglClient, CREATED_WITH},
+    commands::time_entries::create_workday_with_pause,
+    model::Start,
   };
   use chrono::{DateTime, Local};
   use mockito::{mock, Matcher};
@@ -208,7 +212,10 @@ mod tests {
         project: "betamale gmbh".to_string(),
       };
 
-      create_workday_with_pause(&workday_with_pause)?;
+      let client =
+        TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
+
+      create_workday_with_pause(&workday_with_pause, &client)?;
     }
 
     me_mock.assert();
@@ -334,7 +341,10 @@ mod tests {
         project: "betamale gmbh".to_string(),
       };
 
-      create_workday_with_pause(&workday_with_pause)?;
+      let client =
+        TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
+
+      create_workday_with_pause(&workday_with_pause, &client)?;
     }
 
     me_mock.assert();

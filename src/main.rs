@@ -1,6 +1,7 @@
 use crate::cli::{Clients, Options, SubCommand, TimeEntries};
 use crate::config::init_settings_file;
 use clap::Parser;
+use client::init_client;
 
 mod cli;
 mod client;
@@ -14,26 +15,45 @@ fn main() -> anyhow::Result<()> {
 
   match options.subcommand {
     SubCommand::Init => init_settings_file()?,
-    SubCommand::Projects(_action) => commands::projects::list(&format)?,
-    SubCommand::Workspaces(_action) => commands::workspaces::list(&format)?,
+    SubCommand::Projects(_action) => {
+      let client = init_client()?;
+
+      commands::projects::list(&format, &client)?;
+    }
+    SubCommand::Workspaces(_action) => {
+      let client = init_client()?;
+
+      commands::workspaces::list(&format, &client)?;
+    }
 
     SubCommand::TimeEntries(action) => match action {
       TimeEntries::CreateWorkdayWithPause(time_entry) => {
-        commands::time_entries::create_workday_with_pause(&time_entry)?
+        let client = init_client()?;
+        commands::time_entries::create_workday_with_pause(&time_entry, &client)?
       }
       TimeEntries::Create(time_entry) => {
-        commands::time_entries::create(&format, &time_entry)?
+        let client = init_client()?;
+        commands::time_entries::create(&format, &time_entry, &client)?
       }
       TimeEntries::List(list_time_entries) => {
-        commands::time_entries::list(&format, &list_time_entries.range)?
+        let client = init_client()?;
+        commands::time_entries::list(
+          &format,
+          &list_time_entries.range,
+          &client,
+        )?
       }
     },
 
     SubCommand::Clients(action) => match action {
       Clients::Create(create_client) => {
-        commands::clients::create(&format, &create_client)?
+        let client = init_client()?;
+        commands::clients::create(&format, &create_client, &client)?
       }
-      Clients::List => commands::clients::list(&format)?,
+      Clients::List => {
+        let client = init_client()?;
+        commands::clients::list(&format, &client)?;
+      }
     },
   }
 
