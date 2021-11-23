@@ -7,5 +7,6 @@ jobs:
       CARGO_TERM_COLOR: always
     steps:
       - uses: actions/checkout@v2
+      - uses: Swatinem/rust-cache@v1
       - run: cargo fmt -- --check && cargo clippy -- -Dwarnings
       - run: cargo test
