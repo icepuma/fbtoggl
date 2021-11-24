@@ -1,7 +1,8 @@
-use crate::model::{Printer, Range, Start};
+use crate::model::{Range, Start};
 use chrono::Duration;
 use clap::{ArgEnum, Parser};
 use jackdauer::duration;
+use serde::Serialize;
 
 pub const APP_NAME: &str = "fbtoggl";
 
@@ -105,25 +106,6 @@ pub struct CreateTimeEntry {
 }
 
 #[derive(Parser, Debug)]
-pub struct CreateWorkdayWithPause {
-  #[clap(long, about = "Name of the project")]
-  pub project: String,
-
-  #[clap(long, about = "Description of the timer")]
-  pub description: String,
-
-  #[clap(long, about = "Duration (in hours)")]
-  pub hours: f64,
-
-  #[clap(
-    long,
-    about = "Start ('now', ISO 8601 date time '2021-11-01T00:00:00+01:00')",
-    default_value = "now"
-  )]
-  pub start: Start,
-}
-
-#[derive(Parser, Debug)]
 pub enum Clients {
   #[clap(about = "List all clients")]
   List,
@@ -132,23 +114,10 @@ pub enum Clients {
   Create(CreateClient),
 }
 
-pub fn output_values<T: Printer>(format: &Format, values: Vec<T>) {
+pub(crate) fn output_values_json<T: Serialize>(values: &[T]) {
   for value in values {
-    output_value(format, value)
+    if let Ok(output) = serde_json::to_string_pretty(&value) {
+      println!("{}", output);
+    }
   }
-}
-
-pub fn output_value<T: Printer>(format: &Format, value: T) {
-  match format {
-    Format::Json => {
-      if let Ok(output) = value.to_json() {
-        println!("{}", output);
-      }
-    }
-    Format::Raw => {
-      if let Ok(output) = value.to_raw() {
-        println!("\"{}\"", output);
-      }
-    }
-  };
 }

@@ -12,11 +12,6 @@ use serde::Serialize;
 use std::collections::HashMap;
 use std::str::FromStr;
 
-pub trait Printer {
-  fn to_raw(&self) -> anyhow::Result<String>;
-  fn to_json(&self) -> anyhow::Result<String>;
-}
-
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Workspace {
   pub id: u64,
@@ -31,16 +26,6 @@ pub struct Workspace {
   pub rounding_minutes: i8,
   pub at: DateTime<Utc>,
   pub logo_url: Option<String>,
-}
-
-impl Printer for Workspace {
-  fn to_json(&self) -> anyhow::Result<String> {
-    Ok(serde_json::to_string_pretty(&self)?)
-  }
-
-  fn to_raw(&self) -> anyhow::Result<String> {
-    Ok(self.name.to_string())
-  }
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -60,16 +45,6 @@ pub struct Project {
   pub color: String,
   pub rate: Option<f64>,
   pub created_at: DateTime<Utc>,
-}
-
-impl Printer for Project {
-  fn to_json(&self) -> anyhow::Result<String> {
-    Ok(serde_json::to_string_pretty(&self)?)
-  }
-
-  fn to_raw(&self) -> anyhow::Result<String> {
-    Ok(self.name.to_string())
-  }
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -127,16 +102,6 @@ pub struct TimeEntry {
   pub at: DateTime<Utc>,
 }
 
-impl Printer for TimeEntry {
-  fn to_json(&self) -> anyhow::Result<String> {
-    Ok(serde_json::to_string_pretty(&self)?)
-  }
-
-  fn to_raw(&self) -> anyhow::Result<String> {
-    Ok(self.description.to_owned().unwrap_or_default())
-  }
-}
-
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Client {
   pub id: u64,
@@ -147,16 +112,6 @@ pub struct Client {
   // This shouldn't be an Option:
   // https://github.com/toggl/toggl_api_docs/blob/master/chapters/clients.md#create-a-client
   pub at: Option<DateTime<Utc>>,
-}
-
-impl Printer for Client {
-  fn to_json(&self) -> anyhow::Result<String> {
-    Ok(serde_json::to_string_pretty(&self)?)
-  }
-
-  fn to_raw(&self) -> anyhow::Result<String> {
-    Ok(self.name.to_string())
-  }
 }
 
 #[derive(Debug, Clone, Copy)]

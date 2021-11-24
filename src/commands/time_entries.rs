@@ -1,7 +1,7 @@
 use crate::{
-  cli::{output_value, output_values, CreateTimeEntry, Format},
+  cli::{output_values_json, CreateTimeEntry, Format},
   client::TogglClient,
-  model::Range,
+  model::{Range, TimeEntry},
 };
 use anyhow::anyhow;
 use chrono::Duration;
@@ -14,13 +14,16 @@ pub fn list(
 ) -> anyhow::Result<()> {
   let time_entries = client.get_time_entries(range)?;
 
-  output_values(format, time_entries);
+  match format {
+    Format::Json => output_values_json(&time_entries),
+    Format::Raw => output_values_raw(&time_entries),
+  }
 
   Ok(())
 }
 
 pub fn create(
-  format: &Format,
+  _format: &Format,
   time_entry: &CreateTimeEntry,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
@@ -59,8 +62,10 @@ pub fn create(
       new_start,
       project.id,
     )?;
+
+    // FIXME: output entries of day
   } else {
-    let data = client.create_time_entry(
+    client.create_time_entry(
       &time_entry.description,
       workspace_id,
       &time_entry.tags,
@@ -69,10 +74,19 @@ pub fn create(
       project.id,
     )?;
 
-    output_value(format, data.data);
+    // FIXME: output entries of day
   }
 
   Ok(())
+}
+
+fn output_values_raw(values: &[TimeEntry]) {
+  for time_entry in values {
+    println!(
+      "\"{}\"",
+      time_entry.description.to_owned().unwrap_or_default()
+    );
+  }
 }
 
 #[cfg(test)]
