@@ -69,23 +69,22 @@ pub fn create_workday_with_pause(
       time_entry.project
     )))?;
 
-  // https://karrierebibel.de/pausenregelung/
-  let pause = if time_entry.hours >= 6.0 && time_entry.hours <= 9.0 {
-    Duration::minutes(30)
-  } else if time_entry.hours >= 9.0 {
-    Duration::minutes(45)
+  let hours = time_entry.hours.abs();
+
+  let pause = if hours >= 6.0 {
+    Duration::hours(1)
   } else {
     Duration::minutes(0)
   };
 
   if pause.is_zero() {
-    let duration = (time_entry.hours * 3600.0).ceil();
+    let duration = (hours * 3600.0).ceil();
 
     client.create_time_entry(
       &time_entry.description,
       workspace_id,
       &None,
-      Duration::seconds(duration as i64).num_seconds() as u64,
+      duration as u64,
       time_entry.start.as_date_time(),
       project.id,
     )?;
@@ -96,7 +95,7 @@ pub fn create_workday_with_pause(
       &time_entry.description,
       workspace_id,
       &None,
-      Duration::seconds(duration as i64).num_seconds() as u64,
+      duration as u64,
       time_entry.start.as_date_time(),
       project.id,
     )?;
@@ -291,7 +290,7 @@ mod tests {
           "description": "fkbr",
           "wid": 1234567,
           "duration": 12600,
-          "start": "2021-11-22T02:58:09+01:00",
+          "start": "2021-11-22T03:28:09+01:00",
           "tags": null,
           "pid": 123456789,
           "created_with": CREATED_WITH,
@@ -306,11 +305,11 @@ mod tests {
           "wid": 1234567,
           "pid": 123456789,
           "billable": false,
-          "start": "2021-11-22T02:58:09+01:00",
+          "start": "2021-11-22T03:28:09+01:00",
           "duration": 12600,
           "description": "fkbr",
           "duronly": false,
-          "at": "2021-11-22T02:58:09+01:00",
+          "at": "2021-11-22T03:28:09+01:00",
           "uid": 123456789
         }
       }
