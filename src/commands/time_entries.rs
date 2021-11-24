@@ -1,8 +1,5 @@
 use crate::{
-  cli::{
-    output_value, output_values, CreateTimeEntry, CreateWorkdayWithPause,
-    Format,
-  },
+  cli::{output_value, output_values, CreateTimeEntry, Format},
   client::TogglClient,
   model::Range,
 };
@@ -39,79 +36,40 @@ pub fn create(
       time_entry.project
     )))?;
 
-  let data = client.create_time_entry(
-    &time_entry.description,
-    workspace_id,
-    &time_entry.tags,
-    time_entry.duration,
-    time_entry.start.as_date_time(),
-    project.id,
-  )?;
-
-  output_value(format, data.data);
-
-  Ok(())
-}
-
-pub fn create_workday_with_pause(
-  time_entry: &CreateWorkdayWithPause,
-  client: &TogglClient,
-) -> anyhow::Result<()> {
-  let me = client.get_me()?;
-  let workspace_id = me.data.default_wid;
-  let projects = client.get_workspace_projects(workspace_id)?;
-
-  let project = projects
-    .iter()
-    .find(|project| project.name == time_entry.project)
-    .ok_or(anyhow!(format!(
-      "Cannot find project='{}'",
-      time_entry.project
-    )))?;
-
-  let hours = time_entry.hours.abs();
-
-  let pause = if hours >= 6.0 {
-    Duration::hours(1)
-  } else {
-    Duration::minutes(0)
-  };
-
-  if pause.is_zero() {
-    let duration = (hours * 3600.0).ceil();
+  if time_entry.lunch_break {
+    let start = time_entry.start.as_date_time();
+    let duration = time_entry.duration.div(2);
 
     client.create_time_entry(
       &time_entry.description,
       workspace_id,
-      &None,
-      duration as u64,
-      time_entry.start.as_date_time(),
-      project.id,
-    )?;
-  } else {
-    let duration = (time_entry.hours.div(2.0) * 3600.0).ceil();
-
-    client.create_time_entry(
-      &time_entry.description,
-      workspace_id,
-      &None,
-      duration as u64,
-      time_entry.start.as_date_time(),
+      &time_entry.tags,
+      duration,
+      start,
       project.id,
     )?;
 
-    let new_start = time_entry.start.as_date_time()
-      + Duration::seconds(duration as i64)
-      + pause;
+    let new_start = start + Duration::hours(1) + duration;
 
     client.create_time_entry(
       &time_entry.description,
       workspace_id,
-      &None,
-      Duration::seconds(duration as i64).num_seconds() as u64,
+      &time_entry.tags,
+      duration,
       new_start,
       project.id,
     )?;
+  } else {
+    let data = client.create_time_entry(
+      &time_entry.description,
+      workspace_id,
+      &time_entry.tags,
+      time_entry.duration,
+      time_entry.start.as_date_time(),
+      project.id,
+    )?;
+
+    output_value(format, data.data);
   }
 
   Ok(())
@@ -120,12 +78,12 @@ pub fn create_workday_with_pause(
 #[cfg(test)]
 mod tests {
   use crate::{
-    cli::CreateWorkdayWithPause,
+    cli::CreateTimeEntry,
     client::{TogglClient, CREATED_WITH},
-    commands::time_entries::create_workday_with_pause,
+    commands::time_entries::create,
     model::Start,
   };
-  use chrono::{DateTime, Local};
+  use chrono::{DateTime, Duration, Local};
   use mockito::{mock, Matcher};
   use serde_json::{json, Value};
   use std::str::FromStr;
@@ -209,19 +167,21 @@ mod tests {
       .create();
 
     {
-      let workday_with_pause = CreateWorkdayWithPause {
+      let workday_with_pause = CreateTimeEntry {
         description: "fkbr".to_string(),
         start: Start::Date(DateTime::<Local>::from_str(
           "2021-11-21T22:58:09Z",
         )?),
-        hours: 2.0,
+        duration: Duration::hours(2),
+        lunch_break: false,
         project: "betamale gmbh".to_string(),
+        tags: None,
       };
 
       let client =
         TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
 
-      create_workday_with_pause(&workday_with_pause, &client)?;
+      create(&crate::cli::Format::Json, &workday_with_pause, &client)?;
     }
 
     me_mock.assert();
@@ -338,19 +298,21 @@ mod tests {
       .create();
 
     {
-      let workday_with_pause = CreateWorkdayWithPause {
+      let workday_with_pause = CreateTimeEntry {
         description: "fkbr".to_string(),
         start: Start::Date(DateTime::<Local>::from_str(
           "2021-11-21T22:58:09+01:00",
         )?),
-        hours: 7.0,
+        duration: Duration::hours(7),
+        lunch_break: true,
         project: "betamale gmbh".to_string(),
+        tags: None,
       };
 
       let client =
         TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
 
-      create_workday_with_pause(&workday_with_pause, &client)?;
+      create(&crate::cli::Format::Json, &workday_with_pause, &client)?;
     }
 
     me_mock.assert();

@@ -1,6 +1,7 @@
-use clap::{ArgEnum, Parser};
-
 use crate::model::{Printer, Range, Start};
+use chrono::Duration;
+use clap::{ArgEnum, Parser};
+use jackdauer::duration;
 
 pub const APP_NAME: &str = "fbtoggl";
 
@@ -55,9 +56,6 @@ pub enum TimeEntries {
 
   #[clap(about = "Create time entry")]
   Create(CreateTimeEntry),
-
-  #[clap(about = "Create workday with pause")]
-  CreateWorkdayWithPause(CreateWorkdayWithPause),
 }
 
 #[derive(Parser, Debug)]
@@ -76,6 +74,11 @@ pub struct CreateClient {
   pub name: String,
 }
 
+fn parse_duration(duration_to_parse: &str) -> anyhow::Result<Duration> {
+  let bla = duration(duration_to_parse)?;
+  Ok(Duration::from_std(bla)?)
+}
+
 #[derive(Parser, Debug)]
 pub struct CreateTimeEntry {
   #[clap(long, about = "Name of the project")]
@@ -87,8 +90,11 @@ pub struct CreateTimeEntry {
   #[clap(long, about = "Tags")]
   pub tags: Option<Vec<String>>,
 
-  #[clap(long, about = "Duration (in minutes)")]
-  pub duration: u64,
+  #[clap(long, about = "Duration", parse(try_from_str = parse_duration))]
+  pub duration: Duration,
+
+  #[clap(long, about = "Lunch break (if set, adds a lunch break of 1 hour)")]
+  pub lunch_break: bool,
 
   #[clap(
     long,

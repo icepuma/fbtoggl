@@ -9,6 +9,7 @@ use crate::model::UserData;
 use crate::model::Workspace;
 use anyhow::anyhow;
 use chrono::DateTime;
+use chrono::Duration;
 use chrono::Local;
 use reqwest::blocking;
 use reqwest::Method;
@@ -148,7 +149,7 @@ impl TogglClient {
     description: &str,
     workspace_id: u64,
     tags: &Option<Vec<String>>,
-    duration: u64,
+    duration: Duration,
     start: DateTime<Local>,
     project_id: u64,
   ) -> anyhow::Result<DataWith<TimeEntry>> {
@@ -157,7 +158,7 @@ impl TogglClient {
             "description": description,
             "wid": workspace_id,
             "tags": tags,
-            "duration": duration,
+            "duration": duration.num_seconds(),
             "start": start,
             "pid": project_id,
             "created_with": CREATED_WITH,
@@ -189,7 +190,7 @@ mod tests {
     client::{TogglClient, CREATED_WITH},
     model::Range,
   };
-  use chrono::{DateTime, Local, NaiveDate};
+  use chrono::{DateTime, Duration, Local, NaiveDate};
   use mockito::{mock, Matcher};
   use pretty_assertions::assert_eq;
   use serde_json::json;
@@ -574,7 +575,7 @@ mod tests {
         "Wurst",
         123456789,
         &Some(vec!["aa".to_string(), "bb".to_string()]),
-        200,
+        Duration::seconds(200),
         DateTime::<Local>::from_str("2021-11-21T23:58:09+01:00")?,
         123456789,
       )?;

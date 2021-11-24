@@ -27,10 +27,6 @@ fn main() -> anyhow::Result<()> {
     }
 
     SubCommand::TimeEntries(action) => match action {
-      TimeEntries::CreateWorkdayWithPause(time_entry) => {
-        let client = init_client()?;
-        commands::time_entries::create_workday_with_pause(&time_entry, &client)?
-      }
       TimeEntries::Create(time_entry) => {
         let client = init_client()?;
         commands::time_entries::create(&format, &time_entry, &client)?
