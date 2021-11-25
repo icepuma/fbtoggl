@@ -95,7 +95,7 @@ impl TogglClient {
   ) -> anyhow::Result<D> {
     match response.status() {
       StatusCode::OK | StatusCode::CREATED => Ok(response.json()?),
-      status => Err(anyhow!("Error: {}", status)),
+      status => Err(anyhow!("{}", status)),
     }
   }
 
