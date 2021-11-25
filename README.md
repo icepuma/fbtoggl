@@ -36,8 +36,17 @@ fbtoggl projects list
 fbtoggl clients list
 ```
 
+```bash
+fbtoggl clients create --name "<name>"
+```
+
 ### Time entries
 
 #### Create
 ```bash
-fbtoggl create --project "<project>" --description "<description>" --duration "<duration-in-minutes>"
+fbtoggl create --project "<project>" --description "<description>" --duration "8 hours"
+```
+
+```bash
+fbtoggl create --project "<project>" --description "<description>" --duration "8 hours" --lunch-break
+```
