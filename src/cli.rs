@@ -43,11 +43,13 @@ pub enum SubCommand {
 
 #[derive(Parser, Debug)]
 pub enum Workspaces {
+  #[clap(about = "List all workspaces")]
   List,
 }
 
 #[derive(Parser, Debug)]
 pub enum Projects {
+  #[clap(about = "List all projects (default workspace)")]
   List,
 }
 
@@ -92,7 +94,7 @@ pub struct CreateTimeEntry {
   #[clap(long, about = "Tags")]
   pub tags: Option<Vec<String>>,
 
-  #[clap(long, about = "Duration", parse(try_from_str = parse_duration))]
+  #[clap(long, about = "Duration ('1 hour', '10 minutes', '1 hour 12 minutes')", parse(try_from_str = parse_duration))]
   pub duration: Duration,
 
   #[clap(long, about = "Lunch break (if set, adds a lunch break of 1 hour)")]
@@ -108,7 +110,7 @@ pub struct CreateTimeEntry {
 
 #[derive(Parser, Debug)]
 pub enum Clients {
-  #[clap(about = "List all clients")]
+  #[clap(about = "List all clients (default workspace)")]
   List,
 
   #[clap(about = "Create client (in default workspace)")]
