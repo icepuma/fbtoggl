@@ -20,6 +20,7 @@ pub struct Options {
 pub enum Format {
   Json,
   Raw,
+  Table,
 }
 
 #[derive(Parser)]

@@ -1,25 +1,99 @@
 use crate::{
   cli::{output_values_json, CreateTimeEntry, Format},
   client::TogglClient,
-  model::{Range, TimeEntry},
+  model::{Client, Project, Range, TimeEntry, Workspace},
 };
 use anyhow::anyhow;
-use chrono::Duration;
-use std::ops::Div;
+use chrono::{Duration, NaiveDate};
+use colored::Colorize;
+use hhmmss::Hhmmss;
+use itertools::Itertools;
+use std::{collections::HashMap, ops::Div};
+use term_table::{row::Row, table_cell::TableCell, Table, TableStyle};
+
+struct OutputEntry {
+  date: NaiveDate,
+  duration: Duration,
+  workspace: String,
+  project: String,
+  client: String,
+  description: String,
+}
 
 pub fn list(
   format: &Format,
   range: &Range,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
-  let time_entries = client.get_time_entries(range)?;
+  let mut time_entries = client.get_time_entries(range)?;
+  let workspaces = client.get_workspaces()?;
+  let me = client.get_me()?;
+
+  let workspace_id = me.data.default_wid;
+
+  let projects = client.get_workspace_projects(workspace_id)?;
+  let clients = client.get_workspace_clients(workspace_id)?;
+
+  let output_entries =
+    collect_output_entries(&mut time_entries, &workspaces, &projects, &clients);
 
   match format {
     Format::Json => output_values_json(&time_entries),
-    Format::Raw => output_values_raw(&time_entries),
+    Format::Raw => output_values_raw(&output_entries),
+    Format::Table => output_values_table(&output_entries),
   }
 
   Ok(())
+}
+
+fn collect_output_entries(
+  values: &mut [TimeEntry],
+  workspaces: &[Workspace],
+  projects: &[Project],
+  clients: &[Client],
+) -> Vec<OutputEntry> {
+  let workspace_lookup = workspaces
+    .iter()
+    .map(|workspace| (workspace.id, workspace))
+    .collect::<HashMap<u64, &Workspace>>();
+
+  let project_lookup = projects
+    .iter()
+    .map(|project| (project.id, project))
+    .collect::<HashMap<u64, &Project>>();
+
+  let client_lookup = clients
+    .iter()
+    .map(|client| (client.id, client))
+    .collect::<HashMap<u64, &Client>>();
+
+  let mut output_entries = vec![];
+
+  values.sort_by(|e1, e2| e1.start.cmp(&e2.start));
+
+  for entry in values {
+    let maybe_workspace = workspace_lookup.get(&entry.wid);
+    let maybe_project = project_lookup.get(&entry.pid);
+    let maybe_client = maybe_project
+      .and_then(|project| project.cid.and_then(|c| client_lookup.get(&c)));
+
+    output_entries.push(OutputEntry {
+      date: entry.start.date().naive_local(),
+      duration: Duration::seconds(entry.duration),
+      workspace: maybe_workspace
+        .map(|w| w.name.to_owned())
+        .unwrap_or_else(|| "-".to_string()),
+      project: maybe_project
+        .map(|p| p.name.to_owned())
+        .unwrap_or_else(|| "-".to_string()),
+      client: maybe_client
+        .map(|c| c.name.to_owned())
+        .unwrap_or_else(|| "-".to_string()),
+      description: entry.description.to_owned().unwrap_or_default(),
+    })
+  }
+
+  output_entries
 }
 
 pub fn create(
@@ -80,12 +154,118 @@ pub fn create(
   Ok(())
 }
 
-fn output_values_raw(values: &[TimeEntry]) {
-  for time_entry in values {
-    println!(
-      "\"{}\"",
-      time_entry.description.to_owned().unwrap_or_default()
-    );
+fn output_values_raw(output_entries: &[OutputEntry]) {
+  if !output_entries.is_empty() {
+    for entry in output_entries {
+      println!(
+        "{}\t{}\t{}\t{}\t{}\t{}",
+        &entry.date,
+        &entry.duration.hhmmss(),
+        &entry.workspace,
+        &entry.project,
+        &entry.client,
+        &entry.description
+      );
+    }
+  } else {
+    println!("No entries found");
+  }
+}
+
+fn output_values_table(output_entries: &[OutputEntry]) {
+  let time_entry_buckets = output_entries
+    .iter()
+    .group_by(|e| &e.date)
+    .into_iter()
+    .map(|(date, group)| (date, group.collect()))
+    .collect::<Vec<(&NaiveDate, Vec<&OutputEntry>)>>();
+
+  if !time_entry_buckets.is_empty() {
+    let mut table = Table::new();
+    table.style = TableStyle::thin();
+    table.separate_rows = false;
+
+    let header = Row::new(vec![
+      TableCell::new("Date".bold().underline()),
+      TableCell::new("Time".bold().underline()),
+      TableCell::new("Workspace".bold().underline()),
+      TableCell::new("Project".bold().underline()),
+      TableCell::new("Customer".bold().underline()),
+      TableCell::new("Description".bold().underline()),
+    ]);
+
+    table.add_row(header);
+
+    table.add_row(Row::new(vec![
+      TableCell::new(""),
+      TableCell::new(""),
+      TableCell::new(""),
+      TableCell::new(""),
+      TableCell::new(""),
+      TableCell::new(""),
+    ]));
+
+    let mut total_time_sum = 0;
+
+    for (date, entries) in time_entry_buckets {
+      let time_sum: i64 =
+        entries.iter().map(|e| e.duration.num_seconds()).sum();
+
+      total_time_sum += time_sum;
+
+      let date_row = Row::new(vec![
+        TableCell::new(date.to_string().bold()),
+        TableCell::new(Duration::seconds(time_sum).hhmmss().bold()),
+        TableCell::new(""),
+        TableCell::new(""),
+        TableCell::new(""),
+        TableCell::new(""),
+      ]);
+
+      table.add_row(date_row);
+
+      for entry in entries {
+        let entry_row = Row::new(vec![
+          TableCell::new(""),
+          TableCell::new(&entry.duration.hhmmss().italic()),
+          TableCell::new(&entry.workspace),
+          TableCell::new(&entry.project),
+          TableCell::new(&entry.client),
+          TableCell::new(&entry.description),
+        ]);
+
+        table.add_row(entry_row);
+      }
+    }
+
+    table.add_row(Row::new(vec![
+      TableCell::new(""),
+      TableCell::new(""),
+      TableCell::new(""),
+      TableCell::new(""),
+      TableCell::new(""),
+      TableCell::new(""),
+    ]));
+
+    let total_sum_row = Row::new(vec![
+      TableCell::new("Total".bold()),
+      TableCell::new(
+        Duration::seconds(total_time_sum)
+          .hhmmss()
+          .bold()
+          .underline(),
+      ),
+      TableCell::new(""),
+      TableCell::new(""),
+      TableCell::new(""),
+      TableCell::new(""),
+    ]);
+
+    table.add_row(total_sum_row);
+
+    println!("{}", table.render());
+  } else {
+    println!("No entries found");
   }
 }
 
