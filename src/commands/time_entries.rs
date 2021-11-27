@@ -97,7 +97,7 @@ fn collect_output_entries(
 }
 
 pub fn create(
-  _format: &Format,
+  format: &Format,
   time_entry: &CreateTimeEntry,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
@@ -136,8 +136,6 @@ pub fn create(
       new_start,
       project.id,
     )?;
-
-    // FIXME: output entries of day
   } else {
     client.create_time_entry(
       &time_entry.description,
@@ -147,9 +145,9 @@ pub fn create(
       time_entry.start.as_date_time(),
       project.id,
     )?;
-
-    // FIXME: output entries of day
   }
+
+  list(format, &Range::Today, client)?;
 
   Ok(())
 }
