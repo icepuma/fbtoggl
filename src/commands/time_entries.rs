@@ -28,6 +28,12 @@ pub fn list(
   client: &TogglClient,
 ) -> anyhow::Result<()> {
   let mut time_entries = client.get_time_entries(range)?;
+
+  if time_entries.is_empty() {
+    println!("No entries found!");
+    return Ok(());
+  }
+
   let workspaces = client.get_workspaces()?;
   let me = client.get_me()?;
 
@@ -154,21 +160,112 @@ pub fn create(
   Ok(())
 }
 
+pub fn start(
+  format: &Format,
+  time_entry: &StartTimeEntry,
+  client: &TogglClient,
+) -> anyhow::Result<()> {
+  let me = client.get_me()?;
+  let workspace_id = me.data.default_wid;
+  let projects = client.get_workspace_projects(workspace_id)?;
+
+  let project = projects
+    .iter()
+    .find(|project| project.name == time_entry.project)
+    .ok_or(anyhow!(format!(
+      "Cannot find project='{}'",
+      time_entry.project
+    )))?;
+
+  let started_time_entry = client.start_time_entry(
+    &time_entry.description,
+    &time_entry.tags,
+    project.id,
+  )?;
+
+  match format {
+    Format::Json => output_values_json(&[started_time_entry.data]),
+    Format::Raw => output_time_entry_raw(&started_time_entry.data),
+    Format::Table => output_time_entry_table(&started_time_entry.data),
+  }
+
+  Ok(())
+}
+
+pub fn stop(
+  format: &Format,
+  time_entry: &StopTimeEntry,
+  client: &TogglClient,
+) -> anyhow::Result<()> {
+  let me = client.get_me()?;
+  let workspace_id = me.data.default_wid;
+  let projects = client.get_workspace_projects(workspace_id)?;
+
+  let project = projects
+    .iter()
+    .find(|project| project.name == time_entry.project)
+    .ok_or(anyhow!(format!(
+      "Cannot find project='{}'",
+      time_entry.project
+    )))?;
+
+  client.stop_time_entry(
+    time_entry.id,
+    &time_entry.description,
+    &time_entry.tags,
+    project.id,
+  )?;
+
+  list(format, &Range::Today, client)?;
+
+  Ok(())
+}
+
+fn output_time_entry_raw(time_entry: &TimeEntry) {
+  println!(
+    "{}\t{}\t{}\t{}",
+    &time_entry.id,
+    &time_entry.start,
+    &time_entry.description.to_owned().unwrap_or_default(),
+    &time_entry.tags.join(", "),
+  );
+}
+
+fn output_time_entry_table(time_entry: &TimeEntry) {
+  let mut table = Table::new();
+  table.style = TableStyle::thin();
+  table.separate_rows = false;
+
+  let header = Row::new(vec![
+    TableCell::new("Id".bold().underline()),
+    TableCell::new("Start".bold().underline()),
+    TableCell::new("Description".bold().underline()),
+    TableCell::new("Tags".bold().underline()),
+  ]);
+
+  table.add_row(header);
+
+  table.add_row(Row::new(vec![
+    TableCell::new(&time_entry.id),
+    TableCell::new(&time_entry.start),
+    TableCell::new(&time_entry.description.to_owned().unwrap_or_default()),
+    TableCell::new(&time_entry.tags.join(", ")),
+  ]));
+
+  println!("{}", table.render());
+}
+
 fn output_values_raw(output_entries: &[OutputEntry]) {
-  if !output_entries.is_empty() {
-    for entry in output_entries {
-      println!(
-        "{}\t{}\t{}\t{}\t{}\t{}",
-        &entry.date,
-        &entry.duration.hhmmss(),
-        &entry.workspace,
-        &entry.project,
-        &entry.client,
-        &entry.description
-      );
-    }
-  } else {
-    println!("No entries found");
+  for entry in output_entries {
+    println!(
+      "{}\t{}\t{}\t{}\t{}\t{}",
+      &entry.date,
+      &entry.duration.hhmmss(),
+      &entry.workspace,
+      &entry.project,
+      &entry.client,
+      &entry.description
+    );
   }
 }
 
@@ -315,7 +412,6 @@ mod tests {
       )
       .with_status(200)
       .with_body(projects().to_string())
-      .expect(1)
       .create();
 
     let request_body = json!(
@@ -360,6 +456,17 @@ mod tests {
       .expect(1)
       .create();
 
+    let list_entries_mock =
+      mock("GET", Matcher::Regex(r"^/time_entries.*$".to_string()))
+        .with_header(
+          "Authorization",
+          "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+        )
+        .with_status(200)
+        .expect(1)
+        .with_body("[]")
+        .create();
+
     {
       let workday_with_pause = CreateTimeEntry {
         description: "fkbr".to_string(),
@@ -381,6 +488,7 @@ mod tests {
     me_mock.assert();
     projects_mock.assert();
     time_entry_create_mock.assert();
+    list_entries_mock.assert();
 
     Ok(())
   }
@@ -404,7 +512,6 @@ mod tests {
       )
       .with_status(200)
       .with_body(projects().to_string())
-      .expect(1)
       .create();
 
     let first_request_body = json!(
@@ -491,6 +598,17 @@ mod tests {
       .expect(1)
       .create();
 
+    let list_entries_mock =
+      mock("GET", Matcher::Regex(r"^/time_entries.*$".to_string()))
+        .with_header(
+          "Authorization",
+          "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+        )
+        .with_status(200)
+        .expect(1)
+        .with_body("[]")
+        .create();
+
     {
       let workday_with_pause = CreateTimeEntry {
         description: "fkbr".to_string(),
@@ -513,6 +631,7 @@ mod tests {
     projects_mock.assert();
     first_time_entry_create_mock.assert();
     second_time_entry_create_mock.assert();
+    list_entries_mock.assert();
 
     Ok(())
   }
