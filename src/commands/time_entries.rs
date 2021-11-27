@@ -85,9 +85,16 @@ fn collect_output_entries(
     let maybe_client = maybe_project
       .and_then(|project| project.cid.and_then(|c| client_lookup.get(&c)));
 
+    // Running (Started, but not stopped) time_entries have a negative duration
+    let duration = if entry.duration.is_negative() {
+      Duration::zero()
+    } else {
+      Duration::seconds(entry.duration)
+    };
+
     output_entries.push(OutputEntry {
       date: entry.start.date().naive_local(),
-      duration: Duration::seconds(entry.duration),
+      duration,
       workspace: maybe_workspace
         .map(|w| w.name.to_owned())
         .unwrap_or_else(|| "-".to_string()),
@@ -257,10 +264,16 @@ fn output_time_entry_table(time_entry: &TimeEntry) {
 
 fn output_values_raw(output_entries: &[OutputEntry]) {
   for entry in output_entries {
+    let duration_text = if entry.duration.is_zero() {
+      "running ".to_string()
+    } else {
+      entry.duration.hhmmss()
+    };
+
     println!(
       "{}\t{}\t{}\t{}\t{}\t{}",
       &entry.date,
-      &entry.duration.hhmmss(),
+      duration_text,
       &entry.workspace,
       &entry.project,
       &entry.client,
@@ -322,9 +335,15 @@ fn output_values_table(output_entries: &[OutputEntry]) {
       table.add_row(date_row);
 
       for entry in entries {
+        let duration_text = if entry.duration.is_zero() {
+          "running".italic()
+        } else {
+          entry.duration.hhmmss().italic()
+        };
+
         let entry_row = Row::new(vec![
           TableCell::new(""),
-          TableCell::new(&entry.duration.hhmmss().italic()),
+          TableCell::new(duration_text),
           TableCell::new(&entry.workspace),
           TableCell::new(&entry.project),
           TableCell::new(&entry.client),
