@@ -1,5 +1,7 @@
 use crate::{
-  cli::{output_values_json, CreateTimeEntry, Format},
+  cli::{
+    output_values_json, CreateTimeEntry, Format, StartTimeEntry, StopTimeEntry,
+  },
   client::TogglClient,
   model::{Client, Project, Range, TimeEntry, Workspace},
 };

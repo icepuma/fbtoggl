@@ -60,6 +60,12 @@ pub enum TimeEntries {
 
   #[clap(about = "Create time entry")]
   Create(CreateTimeEntry),
+
+  #[clap(about = "Start a time entry")]
+  Start(StartTimeEntry),
+
+  #[clap(about = "Stop a time entry")]
+  Stop(StopTimeEntry),
 }
 
 #[derive(Parser, Debug)]
@@ -106,6 +112,33 @@ pub struct CreateTimeEntry {
     default_value = "now"
   )]
   pub start: Start,
+}
+
+#[derive(Parser, Debug)]
+pub struct StartTimeEntry {
+  #[clap(long, about = "Name of the project")]
+  pub project: String,
+
+  #[clap(long, about = "Description of the timer")]
+  pub description: String,
+
+  #[clap(long, about = "Tags")]
+  pub tags: Option<Vec<String>>,
+}
+
+#[derive(Parser, Debug)]
+pub struct StopTimeEntry {
+  #[clap(long, about = "Id of the time entry")]
+  pub id: u64,
+
+  #[clap(long, about = "Name of the project")]
+  pub project: String,
+
+  #[clap(long, about = "Description of the timer")]
+  pub description: String,
+
+  #[clap(long, about = "Tags")]
+  pub tags: Option<Vec<String>>,
 }
 
 #[derive(Parser, Debug)]

@@ -98,8 +98,10 @@ pub struct TimeEntry {
 
   #[serde(default)]
   pub tags: Vec<String>,
+
+  #[serde(default)]
   pub duronly: bool,
-  pub at: DateTime<Utc>,
+  pub at: Option<DateTime<Utc>>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]

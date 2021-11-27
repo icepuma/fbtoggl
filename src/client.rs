@@ -182,6 +182,47 @@ impl TogglClient {
 
     self.request_with_body(Method::POST, "clients", body)
   }
+
+  pub fn start_time_entry(
+    &self,
+    description: &str,
+    tags: &Option<Vec<String>>,
+    project_id: u64,
+  ) -> anyhow::Result<DataWith<TimeEntry>> {
+    let body = json!({
+      "time_entry": {
+        "description": description,
+        "tags": tags,
+        "pid": project_id,
+        "created_with": CREATED_WITH,
+      }
+    });
+
+    self.request_with_body(Method::POST, "time_entries/start", body)
+  }
+
+  pub fn stop_time_entry(
+    &self,
+    time_entry_id: u64,
+    description: &str,
+    tags: &Option<Vec<String>>,
+    project_id: u64,
+  ) -> anyhow::Result<DataWith<TimeEntry>> {
+    let body = json!({
+      "time_entry": {
+        "description": description,
+        "tags": tags,
+        "pid": project_id,
+        "created_with": CREATED_WITH,
+      }
+    });
+
+    self.request_with_body(
+      Method::PUT,
+      &format!("time_entries/{}/stop", time_entry_id),
+      body,
+    )
+  }
 }
 
 #[cfg(test)]
@@ -635,6 +676,121 @@ mod tests {
       let created_client = client.create_client("fkbr.org", 123456789)?;
 
       assert_eq!(created_client.data.name, "fkbr.org");
+    }
+
+    mock.assert();
+
+    Ok(())
+  }
+
+  #[test]
+  fn test_start_time_entry() -> anyhow::Result<()> {
+    let request_body = json!(
+      {
+        "time_entry": {
+          "description": "fkbr",
+          "tags": ["a", "b"],
+          "pid": 123,
+          "created_with": CREATED_WITH,
+        }
+      }
+    );
+
+    let response_body = json!(
+      {
+        "data": {
+          "id": 123456789,
+          "pid": 123,
+          "wid": 123456,
+          "billable": false,
+          "start": "2013-03-05T07:58:58.000Z",
+          "duration": -1362470338,
+          "description": "fkbr",
+          "tags": ["a", "b"]
+        }
+      }
+    );
+
+    let mock = mock("POST", "/time_entries/start")
+      .with_header(
+        "Authorization",
+        "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+      )
+      .with_status(200)
+      .match_body(Matcher::Json(request_body))
+      .with_body(response_body.to_string())
+      .expect(1)
+      .create();
+
+    {
+      let client =
+        TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
+
+      let started_time_entry = client.start_time_entry(
+        "fkbr",
+        &Some(vec!["a".to_string(), "b".to_string()]),
+        123,
+      )?;
+
+      assert_eq!(started_time_entry.data.id, 123456789);
+    }
+
+    mock.assert();
+
+    Ok(())
+  }
+
+  #[test]
+  fn test_stop_time_entry() -> anyhow::Result<()> {
+    let request_body = json!(
+      {
+        "time_entry": {
+          "description": "fkbr",
+          "tags": ["a", "b"],
+          "pid": 123,
+          "created_with": CREATED_WITH,
+        }
+      }
+    );
+
+    let response_body = json!(
+      {
+        "data": {
+          "id": 123456789,
+          "pid": 123,
+          "wid": 123456,
+          "billable": false,
+          "start": "2013-03-05T07:58:58.000Z",
+          "duration": 60,
+          "description": "fkbr",
+          "tags": ["a", "b"]
+        }
+      }
+    );
+
+    let mock = mock("PUT", "/time_entries/456/stop")
+      .with_header(
+        "Authorization",
+        "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+      )
+      .with_status(200)
+      .match_body(Matcher::Json(request_body))
+      .with_body(response_body.to_string())
+      .expect(1)
+      .create();
+
+    {
+      let client =
+        TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
+
+      let started_time_entry = client.stop_time_entry(
+        456,
+        "fkbr",
+        &Some(vec!["a".to_string(), "b".to_string()]),
+        123,
+      )?;
+
+      assert_eq!(started_time_entry.data.id, 123456789);
     }
 
     mock.assert();

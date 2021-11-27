@@ -39,6 +39,14 @@ fn main() -> anyhow::Result<()> {
           &client,
         )?
       }
+      TimeEntries::Start(time_entry) => {
+        let client = init_client()?;
+        commands::time_entries::start(&format, &time_entry, &client)?
+      }
+      TimeEntries::Stop(time_entry) => {
+        let client = init_client()?;
+        commands::time_entries::stop(&format, &time_entry, &client)?
+      }
     },
 
     SubCommand::Clients(action) => match action {
