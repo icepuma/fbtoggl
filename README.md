@@ -42,11 +42,29 @@ fbtoggl clients create --name "<name>"
 
 ### Time entries
 
+#### List
+```bash
+fbtoggl time-entries list [--range "today"]
+```
+
 #### Create
 ```bash
-fbtoggl create --project "<project>" --description "<description>" --duration "8 hours"
+fbtoggl time-entries create --project "<project>" --description "<description>" --duration "8 hours"
 ```
 
 ```bash
-fbtoggl create --project "<project>" --description "<description>" --duration "8 hours" --lunch-break
+fbtoggl time-entries create --project "<project>" --description "<description>" --duration "8 hours" --lunch-break
+```
+
+#### Start
+```bash
+fbtoggl time-entries start --project "<project>" --description "<description>"
+```
+
+#### Stop
+You can find the `<time entry id>` via `JSON` output of all time-entries
+or the `time-entries start` command prompts it after starting a timer.
+
+```bash
+fbtoggl time-entries start --id "<time entry id>" --project "<project>" --description "<description>"
 ```
