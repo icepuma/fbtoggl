@@ -2,3 +2,6 @@ pub mod clients;
 pub mod projects;
 pub mod time_entries;
 pub mod workspaces;
+
+#[cfg(test)]
+pub mod time_entries_tests;

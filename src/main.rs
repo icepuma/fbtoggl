@@ -9,6 +9,9 @@ mod commands;
 mod config;
 mod model;
 
+#[cfg(test)]
+mod client_tests;
+
 fn main() -> anyhow::Result<()> {
   let options = Options::parse();
   let format = options.format;
