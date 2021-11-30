@@ -114,6 +114,7 @@ pub struct CreateTimeEntry {
   #[clap(
     long,
     about = "Start ('now', 'today at 6am', '2021-11-30T06:00', '2 hours ago', 'yesterday at 6am')",
+    default_value = "now",
     parse(try_from_str = parse_time)
   )]
   pub start: DateTime<Local>,
