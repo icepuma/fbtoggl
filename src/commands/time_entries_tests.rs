@@ -99,7 +99,7 @@ fn test_create_workday_with_pause_2_hours() -> anyhow::Result<()> {
 
   {
     let workday_with_pause = CreateTimeEntry {
-      description: "fkbr".to_string(),
+      description: Some("fkbr".to_string()),
       start: DateTime::<Local>::from_str("2021-11-21T22:58:09Z")?,
       duration: Duration::hours(2),
       lunch_break: false,
@@ -242,7 +242,7 @@ fn test_create_workday_with_pause_7_hours() -> anyhow::Result<()> {
 
   {
     let workday_with_pause = CreateTimeEntry {
-      description: "fkbr".to_string(),
+      description: Some("fkbr".to_string()),
       start: DateTime::<Local>::from_str("2021-11-21T22:58:09+01:00")?,
       duration: Duration::hours(7),
       lunch_break: true,

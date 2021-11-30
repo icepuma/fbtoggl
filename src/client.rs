@@ -147,7 +147,7 @@ impl TogglClient {
   #[allow(clippy::too_many_arguments)]
   pub fn create_time_entry(
     &self,
-    description: &str,
+    description: &Option<String>,
     workspace_id: u64,
     tags: &Option<Vec<String>>,
     duration: Duration,
@@ -190,7 +190,7 @@ impl TogglClient {
 
   pub fn start_time_entry(
     &self,
-    description: &str,
+    description: &Option<String>,
     tags: &Option<Vec<String>>,
     project_id: u64,
     non_billable: bool,
@@ -213,7 +213,7 @@ impl TogglClient {
   pub fn stop_time_entry(
     &self,
     time_entry_id: u64,
-    description: &str,
+    description: &Option<String>,
     tags: &Option<Vec<String>>,
     project_id: u64,
   ) -> anyhow::Result<DataWith<TimeEntry>> {

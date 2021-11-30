@@ -385,7 +385,7 @@ fn create_time_entry() -> anyhow::Result<()> {
       TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
 
     let created_time_entry = client.create_time_entry(
-      "Wurst",
+      &Some("Wurst".to_string()),
       123456789,
       &Some(vec!["aa".to_string(), "bb".to_string()]),
       Duration::seconds(200),
@@ -501,7 +501,7 @@ fn test_start_time_entry() -> anyhow::Result<()> {
       TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
 
     let started_time_entry = client.start_time_entry(
-      "fkbr",
+      &Some("fkbr".to_string()),
       &Some(vec!["a".to_string(), "b".to_string()]),
       123,
       true,
@@ -560,7 +560,7 @@ fn test_stop_time_entry() -> anyhow::Result<()> {
 
     let started_time_entry = client.stop_time_entry(
       456,
-      "fkbr",
+      &Some("fkbr".to_string()),
       &Some(vec!["a".to_string(), "b".to_string()]),
       123,
     )?;

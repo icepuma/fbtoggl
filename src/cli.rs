@@ -100,7 +100,7 @@ pub struct CreateTimeEntry {
   pub project: String,
 
   #[clap(long, about = "Description of the timer")]
-  pub description: String,
+  pub description: Option<String>,
 
   #[clap(long, about = "Tags")]
   pub tags: Option<Vec<String>>,
@@ -128,7 +128,7 @@ pub struct StartTimeEntry {
   pub project: String,
 
   #[clap(long, about = "Description of the timer")]
-  pub description: String,
+  pub description: Option<String>,
 
   #[clap(long, about = "Tags")]
   pub tags: Option<Vec<String>>,
@@ -146,7 +146,7 @@ pub struct StopTimeEntry {
   pub project: String,
 
   #[clap(long, about = "Description of the timer")]
-  pub description: String,
+  pub description: Option<String>,
 
   #[clap(long, about = "Tags")]
   pub tags: Option<Vec<String>>,
