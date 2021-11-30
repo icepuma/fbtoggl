@@ -2,7 +2,6 @@ use crate::{
   cli::CreateTimeEntry,
   client::{TogglClient, CREATED_WITH},
   commands::time_entries::create,
-  model::Start,
 };
 use chrono::{DateTime, Duration, Local};
 use mockito::{mock, Matcher};
@@ -101,7 +100,7 @@ fn test_create_workday_with_pause_2_hours() -> anyhow::Result<()> {
   {
     let workday_with_pause = CreateTimeEntry {
       description: "fkbr".to_string(),
-      start: Start::Date(DateTime::<Local>::from_str("2021-11-21T22:58:09Z")?),
+      start: DateTime::<Local>::from_str("2021-11-21T22:58:09Z")?,
       duration: Duration::hours(2),
       lunch_break: false,
       project: "betamale gmbh".to_string(),
@@ -244,9 +243,7 @@ fn test_create_workday_with_pause_7_hours() -> anyhow::Result<()> {
   {
     let workday_with_pause = CreateTimeEntry {
       description: "fkbr".to_string(),
-      start: Start::Date(DateTime::<Local>::from_str(
-        "2021-11-21T22:58:09+01:00",
-      )?),
+      start: DateTime::<Local>::from_str("2021-11-21T22:58:09+01:00")?,
       duration: Duration::hours(7),
       lunch_break: true,
       project: "betamale gmbh".to_string(),

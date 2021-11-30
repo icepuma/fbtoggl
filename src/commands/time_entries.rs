@@ -133,7 +133,7 @@ pub fn create(
     )))?;
 
   if time_entry.lunch_break {
-    let start = time_entry.start.as_date_time();
+    let start = time_entry.start;
     let duration = time_entry.duration.div(2);
 
     client.create_time_entry(
@@ -163,7 +163,7 @@ pub fn create(
       workspace_id,
       &time_entry.tags,
       time_entry.duration,
-      time_entry.start.as_date_time(),
+      time_entry.start,
       project.id,
       time_entry.non_billable,
     )?;

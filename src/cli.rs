@@ -1,5 +1,5 @@
-use crate::model::{Range, Start};
-use chrono::Duration;
+use crate::model::Range;
+use chrono::{DateTime, Duration, Local};
 use clap::{ArgEnum, Parser};
 use jackdauer::duration;
 use serde::Serialize;
@@ -89,6 +89,11 @@ fn parse_duration(duration_to_parse: &str) -> anyhow::Result<Duration> {
   Ok(Duration::from_std(bla)?)
 }
 
+fn parse_time(time_to_parse: &str) -> anyhow::Result<DateTime<Local>> {
+  let now = Local::now();
+  Ok(htp::parse(time_to_parse, now)?)
+}
+
 #[derive(Parser, Debug)]
 pub struct CreateTimeEntry {
   #[clap(long, about = "Name of the project")]
@@ -108,10 +113,10 @@ pub struct CreateTimeEntry {
 
   #[clap(
     long,
-    about = "Start ('now', ISO 8601 date time '2021-11-01T00:00:00+01:00')",
-    default_value = "now"
+    about = "Start ('now', 'today at 6am', '2021-11-30T06:00', '2 hours ago', 'yesterday at 6am')",
+    parse(try_from_str = parse_time)
   )]
-  pub start: Start,
+  pub start: DateTime<Local>,
 
   #[clap(long, about = "Time entry is non-billable")]
   pub non_billable: bool,
