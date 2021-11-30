@@ -144,6 +144,7 @@ impl TogglClient {
     )
   }
 
+  #[allow(clippy::too_many_arguments)]
   pub fn create_time_entry(
     &self,
     description: &str,
@@ -152,7 +153,10 @@ impl TogglClient {
     duration: Duration,
     start: DateTime<Local>,
     project_id: u64,
+    non_billable: bool,
   ) -> anyhow::Result<DataWith<TimeEntry>> {
+    let billable = !non_billable;
+
     let body = json!({
         "time_entry": {
             "description": description,
@@ -162,6 +166,7 @@ impl TogglClient {
             "start": start,
             "pid": project_id,
             "created_with": CREATED_WITH,
+            "billable": billable,
         }
     });
 
@@ -188,13 +193,17 @@ impl TogglClient {
     description: &str,
     tags: &Option<Vec<String>>,
     project_id: u64,
+    non_billable: bool,
   ) -> anyhow::Result<DataWith<TimeEntry>> {
+    let billable = !non_billable;
+
     let body = json!({
       "time_entry": {
         "description": description,
         "tags": tags,
         "pid": project_id,
         "created_with": CREATED_WITH,
+        "billable": billable,
       }
     });
 

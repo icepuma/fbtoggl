@@ -54,6 +54,7 @@ fn test_create_workday_with_pause_2_hours() -> anyhow::Result<()> {
         "tags": null,
         "pid": 123456789,
         "created_with": CREATED_WITH,
+        "billable": false,
       }
     }
   );
@@ -105,6 +106,7 @@ fn test_create_workday_with_pause_2_hours() -> anyhow::Result<()> {
       lunch_break: false,
       project: "betamale gmbh".to_string(),
       tags: None,
+      non_billable: true,
     };
 
     let client =
@@ -152,6 +154,7 @@ fn test_create_workday_with_pause_7_hours() -> anyhow::Result<()> {
         "tags": null,
         "pid": 123456789,
         "created_with": CREATED_WITH,
+        "billable": true,
       }
     }
   );
@@ -162,7 +165,7 @@ fn test_create_workday_with_pause_7_hours() -> anyhow::Result<()> {
         "id": 1234567890,
         "wid": 1234567,
         "pid": 123456789,
-        "billable": false,
+        "billable": true,
         "start": "2021-11-21T22:58:09+01:00",
         "duration": 12600,
         "description": "fkbr",
@@ -183,6 +186,7 @@ fn test_create_workday_with_pause_7_hours() -> anyhow::Result<()> {
         "tags": null,
         "pid": 123456789,
         "created_with": CREATED_WITH,
+        "billable": true,
       }
     }
   );
@@ -193,7 +197,7 @@ fn test_create_workday_with_pause_7_hours() -> anyhow::Result<()> {
         "id": 1234567890,
         "wid": 1234567,
         "pid": 123456789,
-        "billable": false,
+        "billable": true,
         "start": "2021-11-22T03:28:09+01:00",
         "duration": 12600,
         "description": "fkbr",
@@ -247,6 +251,7 @@ fn test_create_workday_with_pause_7_hours() -> anyhow::Result<()> {
       lunch_break: true,
       project: "betamale gmbh".to_string(),
       tags: None,
+      non_billable: false,
     };
 
     let client =

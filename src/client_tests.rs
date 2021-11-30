@@ -343,6 +343,7 @@ fn create_time_entry() -> anyhow::Result<()> {
         "start": "2021-11-21T23:58:09+01:00",
         "pid": 123456789,
         "created_with": CREATED_WITH,
+        "billable": true,
       }
     }
   );
@@ -353,7 +354,7 @@ fn create_time_entry() -> anyhow::Result<()> {
         "id": 1234567890,
         "wid": 123456789,
         "pid": 123456789,
-        "billable": false,
+        "billable": true,
         "start": "2021-11-21T23:58:09+01:00",
         "duration": 200,
         "description": "Wurst",
@@ -390,6 +391,7 @@ fn create_time_entry() -> anyhow::Result<()> {
       Duration::seconds(200),
       DateTime::<Local>::from_str("2021-11-21T23:58:09+01:00")?,
       123456789,
+      false,
     )?;
 
     assert_eq!(
@@ -463,6 +465,7 @@ fn test_start_time_entry() -> anyhow::Result<()> {
         "tags": ["a", "b"],
         "pid": 123,
         "created_with": CREATED_WITH,
+        "billable": false,
       }
     }
   );
@@ -501,6 +504,7 @@ fn test_start_time_entry() -> anyhow::Result<()> {
       "fkbr",
       &Some(vec!["a".to_string(), "b".to_string()]),
       123,
+      true,
     )?;
 
     assert_eq!(started_time_entry.data.id, 123456789);

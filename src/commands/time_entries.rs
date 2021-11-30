@@ -11,7 +11,9 @@ use colored::Colorize;
 use hhmmss::Hhmmss;
 use itertools::Itertools;
 use std::{collections::HashMap, ops::Div};
-use term_table::{row::Row, table_cell::TableCell, Table, TableStyle};
+use term_table::{
+  row::Row, table_cell::Alignment, table_cell::TableCell, Table, TableStyle,
+};
 
 struct OutputEntry {
   date: NaiveDate,
@@ -20,6 +22,7 @@ struct OutputEntry {
   project: String,
   client: String,
   description: String,
+  billable: bool,
 }
 
 pub fn list(
@@ -105,6 +108,7 @@ fn collect_output_entries(
         .map(|c| c.name.to_owned())
         .unwrap_or_else(|| "-".to_string()),
       description: entry.description.to_owned().unwrap_or_default(),
+      billable: entry.billable,
     })
   }
 
@@ -139,6 +143,7 @@ pub fn create(
       duration,
       start,
       project.id,
+      time_entry.non_billable,
     )?;
 
     let new_start = start + Duration::hours(1) + duration;
@@ -150,6 +155,7 @@ pub fn create(
       duration,
       new_start,
       project.id,
+      time_entry.non_billable,
     )?;
   } else {
     client.create_time_entry(
@@ -159,6 +165,7 @@ pub fn create(
       time_entry.duration,
       time_entry.start.as_date_time(),
       project.id,
+      time_entry.non_billable,
     )?;
   }
 
@@ -188,6 +195,7 @@ pub fn start(
     &time_entry.description,
     &time_entry.tags,
     project.id,
+    time_entry.non_billable,
   )?;
 
   match format {
@@ -271,13 +279,18 @@ fn output_values_raw(output_entries: &[OutputEntry]) {
     };
 
     println!(
-      "{}\t{}\t{}\t{}\t{}\t{}",
+      "{}\t{}\t{}\t{}\t{}\t{}\t{}",
       &entry.date,
       duration_text,
       &entry.workspace,
       &entry.project,
       &entry.client,
-      &entry.description
+      &entry.description,
+      if entry.billable {
+        "BILLABLE"
+      } else {
+        "NON_BILLABLE"
+      }
     );
   }
 }
@@ -302,11 +315,13 @@ fn output_values_table(output_entries: &[OutputEntry]) {
       TableCell::new("Project".bold().underline()),
       TableCell::new("Customer".bold().underline()),
       TableCell::new("Description".bold().underline()),
+      TableCell::new("Billable".bold().underline()),
     ]);
 
     table.add_row(header);
 
     table.add_row(Row::new(vec![
+      TableCell::new(""),
       TableCell::new(""),
       TableCell::new(""),
       TableCell::new(""),
@@ -330,6 +345,7 @@ fn output_values_table(output_entries: &[OutputEntry]) {
         TableCell::new(""),
         TableCell::new(""),
         TableCell::new(""),
+        TableCell::new(""),
       ]);
 
       table.add_row(date_row);
@@ -348,6 +364,15 @@ fn output_values_table(output_entries: &[OutputEntry]) {
           TableCell::new(&entry.project),
           TableCell::new(&entry.client),
           TableCell::new(&entry.description),
+          TableCell::new_with_alignment(
+            if entry.billable {
+              "$".bold().green()
+            } else {
+              "$".bold().red()
+            },
+            1,
+            Alignment::Center,
+          ),
         ]);
 
         table.add_row(entry_row);

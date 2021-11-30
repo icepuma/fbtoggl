@@ -58,10 +58,10 @@ pub enum TimeEntries {
   #[clap(about = "List all time entries")]
   List(ListTimeEntries),
 
-  #[clap(about = "Create time entry")]
+  #[clap(about = "Create time entry (billable by default)")]
   Create(CreateTimeEntry),
 
-  #[clap(about = "Start a time entry")]
+  #[clap(about = "Start a time entry (billable by default)")]
   Start(StartTimeEntry),
 
   #[clap(about = "Stop a time entry")]
@@ -112,6 +112,9 @@ pub struct CreateTimeEntry {
     default_value = "now"
   )]
   pub start: Start,
+
+  #[clap(long, about = "Time entry is non-billable")]
+  pub non_billable: bool,
 }
 
 #[derive(Parser, Debug)]
@@ -124,6 +127,9 @@ pub struct StartTimeEntry {
 
   #[clap(long, about = "Tags")]
   pub tags: Option<Vec<String>>,
+
+  #[clap(long, about = "Time entry is non-billable")]
+  pub non_billable: bool,
 }
 
 #[derive(Parser, Debug)]
