@@ -78,6 +78,12 @@ impl TogglClient {
     self.response(response)
   }
 
+  fn empty_request(&self, method: Method, uri: &str) -> anyhow::Result<()> {
+    let response = self.base_request(method, uri)?.send()?;
+
+    self.empty_response(response)
+  }
+
   fn request_with_body<D: DeserializeOwned, S: Serialize>(
     &self,
     method: Method,
@@ -95,6 +101,13 @@ impl TogglClient {
   ) -> anyhow::Result<D> {
     match response.status() {
       StatusCode::OK | StatusCode::CREATED => Ok(response.json()?),
+      status => Err(anyhow!("{}", status)),
+    }
+  }
+
+  fn empty_response(&self, response: blocking::Response) -> anyhow::Result<()> {
+    match response.status() {
+      StatusCode::OK | StatusCode::CREATED => Ok(()),
       status => Err(anyhow!("{}", status)),
     }
   }
@@ -231,5 +244,10 @@ impl TogglClient {
       &format!("time_entries/{}/stop", time_entry_id),
       body,
     )
+  }
+
+  pub fn delete_time_entry(&self, time_entry_id: u64) -> anyhow::Result<()> {
+    self
+      .empty_request(Method::DELETE, &format!("time_entries/{}", time_entry_id))
   }
 }

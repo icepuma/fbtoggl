@@ -572,3 +572,28 @@ fn test_stop_time_entry() -> anyhow::Result<()> {
 
   Ok(())
 }
+
+#[test]
+fn test_delete_time_entry() -> anyhow::Result<()> {
+  let mock = mock("DELETE", "/time_entries/456")
+    .with_header(
+      "Authorization",
+      "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+    )
+    .with_status(200)
+    .expect(1)
+    .create();
+
+  {
+    let client =
+      TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
+
+    let deleted_time_entry = client.delete_time_entry(456);
+
+    assert_eq!(deleted_time_entry.is_ok(), true);
+  }
+
+  mock.assert();
+
+  Ok(())
+}

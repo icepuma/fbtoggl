@@ -68,3 +68,11 @@ or the `time-entries start` command prompts it after starting a timer.
 ```bash
 fbtoggl time-entries start --id "<time entry id>" --project "<project>" --description "<description>"
 ```
+
+#### Delete
+You can find the `<time entry id>` via `JSON` output of all time-entries
+or the `time-entries start` command prompts it after starting a timer.
+
+```bash
+fbtoggl time-entries delete --id "<time entry id>"
+```

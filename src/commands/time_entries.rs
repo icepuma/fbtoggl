@@ -1,6 +1,7 @@
 use crate::{
   cli::{
-    output_values_json, CreateTimeEntry, Format, StartTimeEntry, StopTimeEntry,
+    output_values_json, CreateTimeEntry, DeleteTimeEntry, Format,
+    StartTimeEntry, StopTimeEntry,
   },
   client::TogglClient,
   model::{Client, Project, Range, TimeEntry, Workspace},
@@ -276,6 +277,18 @@ pub fn stop(
     &time_entry.tags,
     project.id,
   )?;
+
+  list(format, &Range::Today, client)?;
+
+  Ok(())
+}
+
+pub fn delete(
+  format: &Format,
+  time_entry: &DeleteTimeEntry,
+  client: &TogglClient,
+) -> anyhow::Result<()> {
+  client.delete_time_entry(time_entry.id)?;
 
   list(format, &Range::Today, client)?;
 

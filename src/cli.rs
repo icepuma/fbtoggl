@@ -68,6 +68,9 @@ pub enum TimeEntries {
 
   #[clap(about = "Stop a time entry")]
   Stop(StopTimeEntry),
+
+  #[clap(about = "Delete time entry")]
+  Delete(DeleteTimeEntry),
 }
 
 #[derive(Parser, Debug)]
@@ -166,6 +169,12 @@ pub struct StopTimeEntry {
 
   #[clap(long, about = "Tags")]
   pub tags: Option<Vec<String>>,
+}
+
+#[derive(Parser, Debug)]
+pub struct DeleteTimeEntry {
+  #[clap(long, about = "Id of the time entry")]
+  pub id: u64,
 }
 
 #[derive(Parser, Debug)]
