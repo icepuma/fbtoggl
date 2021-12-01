@@ -24,10 +24,6 @@ jobs:
           args: musl-strip target/x86_64-unknown-linux-musl/release/fbtoggl
       - run: cp ./target/x86_64-unknown-linux-musl/release/fbtoggl fbtoggl
       - run: sha512sum fbtoggl > fbtoggl.sha512sum
-      - id: github_changelog
-        uses: mikepenz/release-changelog-builder-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - id: github_release
         uses: actions/create-release@v1
         env:
@@ -35,7 +31,7 @@ jobs:
         with:
           tag_name: ${{ github.ref }}
           release_name: Release fbtoggl ${{ github.ref }}
-          body: ${{ steps.github_changelog.outputs.changelog }}
+          body: "No changelog, but [here](https://cataas.com/cat) is a random cat GIF for your amusement!"
           draft: false
           prerelease: false
       - uses: actions/upload-release-asset@v1
