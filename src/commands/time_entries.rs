@@ -197,7 +197,7 @@ pub(super) fn calculate_duration(
     let duration = end - start;
 
     if time_entry.lunch_break {
-      Ok(duration - launch_break())
+      calculate_duration_with_lunch_break(duration)
     } else {
       Ok(duration)
     }
@@ -205,6 +205,18 @@ pub(super) fn calculate_duration(
     time_entry
       .duration
       .ok_or(anyhow!("Please use either --duration or --end"))
+  }
+}
+
+fn calculate_duration_with_lunch_break(
+  duration: Duration,
+) -> anyhow::Result<Duration> {
+  let duration_with_lunch_break = duration - launch_break();
+
+  if duration_with_lunch_break <= Duration::zero() {
+    Err(anyhow!("Duration minus lunch break is <= 0"))
+  } else {
+    Ok(duration_with_lunch_break)
   }
 }
 

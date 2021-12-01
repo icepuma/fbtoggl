@@ -118,7 +118,7 @@ fn test_calculate_duration() -> anyhow::Result<()> {
     project: "fkbr".to_string(),
     start: DateTime::<Local>::from_str("2021-11-21T22:58:09Z")?,
     end: Some(DateTime::<Local>::from_str("2021-11-21T22:58:09Z")?),
-    duration: Some(Duration::hours(2)),
+    duration: None,
     non_billable: false,
     lunch_break: false,
     description: None,
@@ -138,7 +138,7 @@ fn test_calculate_duration() -> anyhow::Result<()> {
     project: "fkbr".to_string(),
     start: DateTime::<Local>::from_str("2021-11-21T23:58:09Z")?,
     end: Some(DateTime::<Local>::from_str("2021-11-21T22:58:09Z")?),
-    duration: Some(Duration::hours(2)),
+    duration: None,
     non_billable: false,
     lunch_break: false,
     description: None,
@@ -146,12 +146,28 @@ fn test_calculate_duration() -> anyhow::Result<()> {
   };
 
   assert_eq!(
-    calculate_duration(
-      &time_entry_with_start_is_after_end
-    )
-    .unwrap_err()
-    .to_string(),
+    calculate_duration(&time_entry_with_start_is_after_end)
+      .unwrap_err()
+      .to_string(),
     "start='2021-11-22 00:58:09 +01:00' is greater or equal than end='2021-11-21 23:58:09 +01:00'".to_string()
+  );
+
+  let time_entry_where_lunch_break_is_longer_than_duration = CreateTimeEntry {
+    project: "fkbr".to_string(),
+    start: DateTime::<Local>::from_str("2021-11-21T10:58:09Z")?,
+    end: Some(DateTime::<Local>::from_str("2021-11-21T11:58:09Z")?),
+    duration: None,
+    non_billable: false,
+    lunch_break: true,
+    description: None,
+    tags: None,
+  };
+
+  assert_eq!(
+    calculate_duration(&time_entry_where_lunch_break_is_longer_than_duration)
+      .unwrap_err()
+      .to_string(),
+    "Duration minus lunch break is <= 0".to_string()
   );
 
   Ok(())
