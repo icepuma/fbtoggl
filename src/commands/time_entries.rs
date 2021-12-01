@@ -17,6 +17,7 @@ use term_table::{
 };
 
 struct OutputEntry {
+  id: u64,
   date: NaiveDate,
   duration: Duration,
   workspace: String,
@@ -97,6 +98,7 @@ fn collect_output_entries(
     };
 
     output_entries.push(OutputEntry {
+      id: entry.id,
       date: entry.start.date().naive_local(),
       duration,
       workspace: maybe_workspace
@@ -338,9 +340,10 @@ fn output_values_raw(output_entries: &[OutputEntry]) {
     };
 
     println!(
-      "{}\t{}\t{}\t{}\t{}\t{}\t{}",
+      "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
       &entry.date,
       duration_text,
+      &entry.id,
       &entry.workspace,
       &entry.project,
       &entry.client,
@@ -370,6 +373,7 @@ fn output_values_table(output_entries: &[OutputEntry]) {
     let header = Row::new(vec![
       TableCell::new("Date".bold().underline()),
       TableCell::new("Time".bold().underline()),
+      TableCell::new("Id".bold().underline()),
       TableCell::new("Workspace".bold().underline()),
       TableCell::new("Project".bold().underline()),
       TableCell::new("Customer".bold().underline()),
@@ -380,6 +384,7 @@ fn output_values_table(output_entries: &[OutputEntry]) {
     table.add_row(header);
 
     table.add_row(Row::new(vec![
+      TableCell::new(""),
       TableCell::new(""),
       TableCell::new(""),
       TableCell::new(""),
@@ -405,6 +410,7 @@ fn output_values_table(output_entries: &[OutputEntry]) {
         TableCell::new(""),
         TableCell::new(""),
         TableCell::new(""),
+        TableCell::new(""),
       ]);
 
       table.add_row(date_row);
@@ -419,6 +425,7 @@ fn output_values_table(output_entries: &[OutputEntry]) {
         let entry_row = Row::new(vec![
           TableCell::new(""),
           TableCell::new(duration_text),
+          TableCell::new(&entry.id),
           TableCell::new(&entry.workspace),
           TableCell::new(&entry.project),
           TableCell::new(&entry.client),
