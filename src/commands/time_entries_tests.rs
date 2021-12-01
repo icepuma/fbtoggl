@@ -1,10 +1,12 @@
 use crate::{
   cli::CreateTimeEntry,
   client::{TogglClient, CREATED_WITH},
+  commands::time_entries::calculate_duration,
   commands::time_entries::create,
 };
 use chrono::{DateTime, Duration, Local};
 use mockito::{mock, Matcher};
+use pretty_assertions::assert_eq;
 use serde_json::{json, Value};
 use std::str::FromStr;
 
@@ -20,6 +22,139 @@ fn setup() {
 fn teardown() {
   std::env::remove_var("RUST_LOG");
   std::env::remove_var("TZ");
+}
+
+#[test]
+fn test_calculate_duration() -> anyhow::Result<()> {
+  let time_entry_with_duration_but_without_end = CreateTimeEntry {
+    project: "fkbr".to_string(),
+    start: DateTime::<Local>::from_str("2021-11-21T22:58:09Z")?,
+    end: None,
+    duration: Some(Duration::hours(2)),
+    non_billable: false,
+    lunch_break: false,
+    description: None,
+    tags: None,
+  };
+
+  assert_eq!(
+    calculate_duration(&time_entry_with_duration_but_without_end)?,
+    Duration::hours(2)
+  );
+
+  let time_entry_without_duration_but_with_end = CreateTimeEntry {
+    project: "fkbr".to_string(),
+    start: DateTime::<Local>::from_str("2021-11-21T10:58:09Z")?,
+    end: Some(DateTime::<Local>::from_str("2021-11-21T12:58:09Z")?),
+    duration: None,
+    non_billable: false,
+    lunch_break: false,
+    description: None,
+    tags: None,
+  };
+
+  assert_eq!(
+    calculate_duration(&time_entry_without_duration_but_with_end)?,
+    Duration::hours(2)
+  );
+
+  let time_entry_without_duration_and_without_end = CreateTimeEntry {
+    project: "fkbr".to_string(),
+    start: DateTime::<Local>::from_str("2021-11-21T10:58:09Z")?,
+    end: None,
+    duration: None,
+    non_billable: false,
+    lunch_break: false,
+    description: None,
+    tags: None,
+  };
+
+  assert_eq!(
+    calculate_duration(&time_entry_without_duration_and_without_end)
+      .unwrap_err()
+      .to_string(),
+    "Please use either --duration or --end".to_string()
+  );
+
+  let time_entry_with_duration_but_without_end_and_lunch_break =
+    CreateTimeEntry {
+      project: "fkbr".to_string(),
+      start: DateTime::<Local>::from_str("2021-11-21T10:58:09Z")?,
+      end: Some(DateTime::<Local>::from_str("2021-11-21T12:58:09Z")?),
+      duration: None,
+      non_billable: false,
+      lunch_break: true,
+      description: None,
+      tags: None,
+    };
+
+  assert_eq!(
+    calculate_duration(
+      &time_entry_with_duration_but_without_end_and_lunch_break
+    )?,
+    Duration::hours(1)
+  );
+
+  let time_entry_with_duration_but_without_end_and_lunch_break =
+    CreateTimeEntry {
+      project: "fkbr".to_string(),
+      start: DateTime::<Local>::from_str("2021-11-21T22:58:09Z")?,
+      end: None,
+      duration: Some(Duration::hours(2)),
+      non_billable: false,
+      lunch_break: false,
+      description: None,
+      tags: None,
+    };
+
+  assert_eq!(
+    calculate_duration(
+      &time_entry_with_duration_but_without_end_and_lunch_break
+    )?,
+    Duration::hours(2)
+  );
+
+  let time_entry_with_start_is_the_same_as_end = CreateTimeEntry {
+    project: "fkbr".to_string(),
+    start: DateTime::<Local>::from_str("2021-11-21T22:58:09Z")?,
+    end: Some(DateTime::<Local>::from_str("2021-11-21T22:58:09Z")?),
+    duration: Some(Duration::hours(2)),
+    non_billable: false,
+    lunch_break: false,
+    description: None,
+    tags: None,
+  };
+
+  assert_eq!(
+    calculate_duration(
+      &time_entry_with_start_is_the_same_as_end
+    )
+    .unwrap_err()
+    .to_string(),
+    "start='2021-11-21 23:58:09 +01:00' is greater or equal than end='2021-11-21 23:58:09 +01:00'".to_string()
+  );
+
+  let time_entry_with_start_is_after_end = CreateTimeEntry {
+    project: "fkbr".to_string(),
+    start: DateTime::<Local>::from_str("2021-11-21T23:58:09Z")?,
+    end: Some(DateTime::<Local>::from_str("2021-11-21T22:58:09Z")?),
+    duration: Some(Duration::hours(2)),
+    non_billable: false,
+    lunch_break: false,
+    description: None,
+    tags: None,
+  };
+
+  assert_eq!(
+    calculate_duration(
+      &time_entry_with_start_is_after_end
+    )
+    .unwrap_err()
+    .to_string(),
+    "start='2021-11-22 00:58:09 +01:00' is greater or equal than end='2021-11-21 23:58:09 +01:00'".to_string()
+  );
+
+  Ok(())
 }
 
 #[test]
@@ -101,7 +236,8 @@ fn test_create_workday_with_pause_2_hours() -> anyhow::Result<()> {
     let workday_with_pause = CreateTimeEntry {
       description: Some("fkbr".to_string()),
       start: DateTime::<Local>::from_str("2021-11-21T22:58:09Z")?,
-      duration: Duration::hours(2),
+      end: None,
+      duration: Some(Duration::hours(2)),
       lunch_break: false,
       project: "betamale gmbh".to_string(),
       tags: None,
@@ -244,7 +380,8 @@ fn test_create_workday_with_pause_7_hours() -> anyhow::Result<()> {
     let workday_with_pause = CreateTimeEntry {
       description: Some("fkbr".to_string()),
       start: DateTime::<Local>::from_str("2021-11-21T22:58:09+01:00")?,
-      duration: Duration::hours(7),
+      end: None,
+      duration: Some(Duration::hours(7)),
       lunch_break: true,
       project: "betamale gmbh".to_string(),
       tags: None,

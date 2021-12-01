@@ -49,11 +49,11 @@ fbtoggl time-entries list [--range "today"]
 
 #### Create
 ```bash
-fbtoggl time-entries create --project "<project>" --description "<description>" --duration "8 hours"
+fbtoggl time-entries create --project "<project>" --description "<description>" --start "today at 6am" --duration "8 hours" [--lunch-break]
 ```
 
 ```bash
-fbtoggl time-entries create --project "<project>" --description "<description>" --duration "8 hours" --lunch-break
+fbtoggl time-entries create --project "<project>" --description "<description>" --start "today at 6am" --end "today at 6pm" [--lunch-break]
 ```
 
 #### Start

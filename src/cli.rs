@@ -58,7 +58,9 @@ pub enum TimeEntries {
   #[clap(about = "List all time entries")]
   List(ListTimeEntries),
 
-  #[clap(about = "Create time entry (billable by default)")]
+  #[clap(
+    about = "Create time entry (billable by default)\nThe combination of --end and --duration conflicts!"
+  )]
   Create(CreateTimeEntry),
 
   #[clap(about = "Start a time entry (billable by default)")]
@@ -105,8 +107,13 @@ pub struct CreateTimeEntry {
   #[clap(long, about = "Tags")]
   pub tags: Option<Vec<String>>,
 
-  #[clap(long, about = "Duration ('1 hour', '10 minutes', '1 hour 12 minutes')", parse(try_from_str = parse_duration))]
-  pub duration: Duration,
+  #[clap(
+    long,
+    about = "Duration ('1 hour', '10 minutes', '1 hour 12 minutes')",
+    parse(try_from_str = parse_duration),
+    conflicts_with = "end"
+  )]
+  pub duration: Option<Duration>,
 
   #[clap(long, about = "Lunch break (if set, adds a lunch break of 1 hour)")]
   pub lunch_break: bool,
@@ -118,6 +125,14 @@ pub struct CreateTimeEntry {
     parse(try_from_str = parse_time)
   )]
   pub start: DateTime<Local>,
+
+  #[clap(
+    long,
+    about = "Start ('now', 'today at 6am', '2021-11-30T06:00', '2 hours ago', 'yesterday at 6am')",
+    parse(try_from_str = parse_time),
+    conflicts_with = "duration"
+  )]
+  pub end: Option<DateTime<Local>>,
 
   #[clap(long, about = "Time entry is non-billable")]
   pub non_billable: bool,

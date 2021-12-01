@@ -132,9 +132,11 @@ pub fn create(
       time_entry.project
     )))?;
 
+  let duration = calculate_duration(time_entry)?;
+
   if time_entry.lunch_break {
     let start = time_entry.start;
-    let duration = time_entry.duration.div(2);
+    let duration = duration.div(2);
 
     client.create_time_entry(
       &time_entry.description,
@@ -146,7 +148,7 @@ pub fn create(
       time_entry.non_billable,
     )?;
 
-    let new_start = start + Duration::hours(1) + duration;
+    let new_start = start + launch_break() + duration;
 
     client.create_time_entry(
       &time_entry.description,
@@ -162,7 +164,7 @@ pub fn create(
       &time_entry.description,
       workspace_id,
       &time_entry.tags,
-      time_entry.duration,
+      duration,
       time_entry.start,
       project.id,
       time_entry.non_billable,
@@ -172,6 +174,38 @@ pub fn create(
   list(format, &Range::Today, client)?;
 
   Ok(())
+}
+
+fn launch_break() -> Duration {
+  Duration::hours(1)
+}
+
+pub(super) fn calculate_duration(
+  time_entry: &CreateTimeEntry,
+) -> anyhow::Result<Duration> {
+  if let Some(end) = time_entry.end {
+    let start = time_entry.start;
+
+    if start >= end {
+      return Err(anyhow!(
+        "start='{}' is greater or equal than end='{}'",
+        start,
+        end
+      ));
+    }
+
+    let duration = end - start;
+
+    if time_entry.lunch_break {
+      Ok(duration - launch_break())
+    } else {
+      Ok(duration)
+    }
+  } else {
+    time_entry
+      .duration
+      .ok_or(anyhow!("Please use either --duration or --end"))
+  }
 }
 
 pub fn start(
