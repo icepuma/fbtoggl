@@ -71,6 +71,9 @@ pub enum TimeEntries {
 
   #[clap(about = "Delete time entry")]
   Delete(DeleteTimeEntry),
+
+  #[clap(about = "Time entry details")]
+  Details(TimeEntryDetails),
 }
 
 #[derive(Parser, Debug)]
@@ -173,6 +176,12 @@ pub struct StopTimeEntry {
 
 #[derive(Parser, Debug)]
 pub struct DeleteTimeEntry {
+  #[clap(long, about = "Id of the time entry")]
+  pub id: u64,
+}
+
+#[derive(Parser, Debug)]
+pub struct TimeEntryDetails {
   #[clap(long, about = "Id of the time entry")]
   pub id: u64,
 }

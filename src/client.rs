@@ -84,6 +84,16 @@ impl TogglClient {
     self.empty_response(response)
   }
 
+  fn empty_request_with_body<D: DeserializeOwned>(
+    &self,
+    method: Method,
+    uri: &str,
+  ) -> anyhow::Result<D> {
+    let response = self.base_request(method, uri)?.send()?;
+
+    self.response(response)
+  }
+
   fn request_with_body<D: DeserializeOwned, S: Serialize>(
     &self,
     method: Method,
@@ -249,5 +259,15 @@ impl TogglClient {
   pub fn delete_time_entry(&self, time_entry_id: u64) -> anyhow::Result<()> {
     self
       .empty_request(Method::DELETE, &format!("time_entries/{}", time_entry_id))
+  }
+
+  pub fn time_entry_details(
+    &self,
+    time_entry_id: u64,
+  ) -> anyhow::Result<DataWith<TimeEntry>> {
+    self.empty_request_with_body(
+      Method::GET,
+      &format!("time_entries/{}", time_entry_id),
+    )
   }
 }

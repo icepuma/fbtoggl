@@ -1,7 +1,7 @@
 use crate::{
   cli::{
     output_values_json, CreateTimeEntry, DeleteTimeEntry, Format,
-    StartTimeEntry, StopTimeEntry,
+    StartTimeEntry, StopTimeEntry, TimeEntryDetails,
   },
   client::TogglClient,
   model::{Client, Project, Range, TimeEntry, Workspace},
@@ -293,6 +293,22 @@ pub fn delete(
   client.delete_time_entry(time_entry.id)?;
 
   list(format, &Range::Today, client)?;
+
+  Ok(())
+}
+
+pub fn details(
+  format: &Format,
+  time_entry: &TimeEntryDetails,
+  client: &TogglClient,
+) -> anyhow::Result<()> {
+  let time_entry_details = client.time_entry_details(time_entry.id)?;
+
+  match format {
+    Format::Json => output_values_json(&[time_entry_details.data]),
+    Format::Raw => output_time_entry_raw(&time_entry_details.data),
+    Format::Table => output_time_entry_table(&time_entry_details.data),
+  }
 
   Ok(())
 }

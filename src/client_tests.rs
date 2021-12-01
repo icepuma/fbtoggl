@@ -597,3 +597,44 @@ fn test_delete_time_entry() -> anyhow::Result<()> {
 
   Ok(())
 }
+
+#[test]
+fn test_time_entry_details() -> anyhow::Result<()> {
+  let response_body = json!(
+    {
+      "data": {
+        "id": 456,
+        "pid": 123,
+        "wid": 123456,
+        "billable": false,
+        "start": "2013-03-05T07:58:58.000Z",
+        "duration": 200,
+        "description": "fkbr",
+        "tags": ["a", "b"]
+      }
+    }
+  );
+
+  let mock = mock("GET", "/time_entries/456")
+    .with_header(
+      "Authorization",
+      "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+    )
+    .with_body(response_body.to_string())
+    .with_status(200)
+    .expect(1)
+    .create();
+
+  {
+    let client =
+      TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
+
+    let time_entry_details = client.time_entry_details(456)?;
+
+    assert_eq!(time_entry_details.data.id, 456);
+  }
+
+  mock.assert();
+
+  Ok(())
+}
