@@ -1,8 +1,16 @@
+<div align="center">
+
 # fbtoggl
+
+![https://crates.io/crates/fbtoggl](https://img.shields.io/crates/v/fbtoggl)
+![https://github.com/icepuma/fbtoggl/actions/workflows/ci.yaml](https://github.com/icepuma/fbtoggl/actions/workflows/ci.yaml/badge.svg)
+
 Interact with track.toggl.com via terminal.
 
-## CI
-![example workflow](https://github.com/icepuma/fbtoggl/actions/workflows/ci.yaml/badge.svg)
+[Installation](#installation) •
+[Usage](#usage)
+
+</div>
 
 ## Installation
 * cargo
