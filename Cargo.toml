@@ -10,13 +10,14 @@ readme = "README.md"
 license = "WTFPL"
 
 [dependencies]
-clap = { version = "3.0.0-beta.5", features = [
+clap = { version = "3", features = [
+    "derive",
     "suggestions",
     "color",
     "env",
     "unicode",
+    "wrap_help"
 ] }
-clap_generate = "3.0.0-beta.5"
 reqwest = { version = "0", features = ["blocking", "json"] }
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }

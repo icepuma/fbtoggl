@@ -1,6 +1,6 @@
 use crate::model::Range;
 use chrono::{DateTime, Duration, Local};
-use clap::{ArgEnum, Parser};
+use clap::{ArgEnum, Parser, Subcommand};
 use jackdauer::duration;
 use serde::Serialize;
 
@@ -23,72 +23,72 @@ pub enum Format {
   Table,
 }
 
-#[derive(Parser)]
+#[derive(Subcommand, Debug)]
 pub enum SubCommand {
-  #[clap(about = "Init settings")]
+  /// Initialize settings
   Init,
 
-  #[clap(subcommand, about = "Workspaces")]
+  /// Workspaces
+  #[clap(subcommand)]
   Workspaces(Workspaces),
 
-  #[clap(subcommand, about = "Projects (default workspace)")]
+  /// Projects (default workspace)
+  #[clap(subcommand)]
   Projects(Projects),
 
-  #[clap(subcommand, about = "Time entries")]
+  /// Time entries
+  #[clap(subcommand)]
   TimeEntries(TimeEntries),
 
-  #[clap(subcommand, about = "Clients (default workspace)")]
+  /// Clients (default workspace)
+  #[clap(subcommand)]
   Clients(Clients),
 }
 
-#[derive(Parser, Debug)]
+#[derive(Subcommand, Debug)]
 pub enum Workspaces {
-  #[clap(about = "List all workspaces")]
+  /// List all workspaces
   List,
 }
 
-#[derive(Parser, Debug)]
+#[derive(Subcommand, Debug)]
 pub enum Projects {
-  #[clap(about = "List all projects (default workspace)")]
+  /// List all projects (default workspace)
   List,
 }
 
 #[derive(Parser, Debug)]
 pub enum TimeEntries {
-  #[clap(about = "List all time entries")]
+  /// List all time entries
   List(ListTimeEntries),
 
-  #[clap(
-    about = "Create time entry (billable by default)\nThe combination of --end and --duration conflicts!"
-  )]
+  /// Create time entry (billable by default). The combination of --end and --duration conflicts!
   Create(CreateTimeEntry),
 
-  #[clap(about = "Start a time entry (billable by default)")]
+  /// Start a time entry (billable by default)
   Start(StartTimeEntry),
 
-  #[clap(about = "Stop a time entry")]
+  /// Stop a time entry
   Stop(StopTimeEntry),
 
-  #[clap(about = "Delete time entry")]
+  /// Delete time entry
   Delete(DeleteTimeEntry),
 
-  #[clap(about = "Time entry details")]
+  /// Time entry details
   Details(TimeEntryDetails),
 }
 
 #[derive(Parser, Debug)]
 pub struct ListTimeEntries {
-  #[clap(
-    long,
-    about = "Start ('today', 'yesterday', 'this-week', 'last-week', 'this-month', 'last-month', ISO 8601 date '2021-11-01'), ISO 8601 date range '2021-11-01|2021-11-02'",
-    default_value = "today"
-  )]
+  /// Start ('today', 'yesterday', 'this-week', 'last-week', 'this-month', 'last-month', ISO 8601 date '2021-11-01'), ISO 8601 date range '2021-11-01|2021-11-02')
+  #[clap(long, default_value = "today")]
   pub range: Range,
 }
 
 #[derive(Parser, Debug)]
 pub struct CreateClient {
-  #[clap(long, about = "Name of the client")]
+  /// Name of the client
+  #[clap(long)]
   pub name: String,
 }
 
@@ -104,94 +104,109 @@ fn parse_time(time_to_parse: &str) -> anyhow::Result<DateTime<Local>> {
 
 #[derive(Parser, Debug)]
 pub struct CreateTimeEntry {
-  #[clap(long, about = "Name of the project")]
+  /// Name of the project
+  #[clap(long)]
   pub project: String,
 
-  #[clap(long, about = "Description of the timer")]
+  /// Description of the timer
+  #[clap(long)]
   pub description: Option<String>,
 
-  #[clap(long, about = "Tags")]
+  /// Tags
+  #[clap(long)]
   pub tags: Option<Vec<String>>,
 
+  /// Duration ('1 hour', '10 minutes', '1 hour 12 minutes')
   #[clap(
     long,
-    about = "Duration ('1 hour', '10 minutes', '1 hour 12 minutes')",
     parse(try_from_str = parse_duration),
     conflicts_with = "end"
   )]
   pub duration: Option<Duration>,
 
-  #[clap(long, about = "Lunch break (if set, adds a lunch break of 1 hour)")]
+  /// Lunch break (if set, adds a lunch break of 1 hour)
+  #[clap(long)]
   pub lunch_break: bool,
 
+  /// Start ('now', 'today at 6am', '2021-11-30T06:00', '2 hours ago', 'yesterday at 6am')
   #[clap(
     long,
-    about = "Start ('now', 'today at 6am', '2021-11-30T06:00', '2 hours ago', 'yesterday at 6am')",
     default_value = "now",
     parse(try_from_str = parse_time)
   )]
   pub start: DateTime<Local>,
 
+  /// Start ('now', 'today at 6am', '2021-11-30T06:00', '2 hours ago', 'yesterday at 6am')
   #[clap(
     long,
-    about = "Start ('now', 'today at 6am', '2021-11-30T06:00', '2 hours ago', 'yesterday at 6am')",
     parse(try_from_str = parse_time),
     conflicts_with = "duration"
   )]
   pub end: Option<DateTime<Local>>,
 
-  #[clap(long, about = "Time entry is non-billable")]
+  /// Time entry is non-billable
+  #[clap(long)]
   pub non_billable: bool,
 }
 
 #[derive(Parser, Debug)]
 pub struct StartTimeEntry {
-  #[clap(long, about = "Name of the project")]
+  /// Name of the project
+  #[clap(long)]
   pub project: String,
 
-  #[clap(long, about = "Description of the timer")]
+  /// Description of the timer
+  #[clap(long)]
   pub description: Option<String>,
 
-  #[clap(long, about = "Tags")]
+  /// Tags
+  #[clap(long)]
   pub tags: Option<Vec<String>>,
 
-  #[clap(long, about = "Time entry is non-billable")]
+  /// Time entry is non-billable
+  #[clap(long)]
   pub non_billable: bool,
 }
 
 #[derive(Parser, Debug)]
 pub struct StopTimeEntry {
-  #[clap(long, about = "Id of the time entry")]
+  /// Id of the time entry
+  #[clap(long)]
   pub id: u64,
 
-  #[clap(long, about = "Name of the project")]
+  /// Name of the project
+  #[clap(long)]
   pub project: String,
 
-  #[clap(long, about = "Description of the timer")]
+  /// Description of the timer
+  #[clap(long)]
   pub description: Option<String>,
 
-  #[clap(long, about = "Tags")]
+  /// Tags
+  #[clap(long)]
   pub tags: Option<Vec<String>>,
 }
 
 #[derive(Parser, Debug)]
 pub struct DeleteTimeEntry {
-  #[clap(long, about = "Id of the time entry")]
+  /// Id of the time entry
+  #[clap(long)]
   pub id: u64,
 }
 
 #[derive(Parser, Debug)]
 pub struct TimeEntryDetails {
-  #[clap(long, about = "Id of the time entry")]
+  /// Id of the time entry
+  #[clap(long)]
   pub id: u64,
 }
 
 #[derive(Parser, Debug)]
 pub enum Clients {
-  #[clap(about = "List all clients (default workspace)")]
+  /// List all clients (default workspace)
   List,
 
-  #[clap(about = "Create client (in default workspace)")]
+  /// Create client (in default workspace)
   Create(CreateClient),
 }
 
