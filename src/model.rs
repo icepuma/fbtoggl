@@ -167,11 +167,22 @@ impl Range {
       }
       Range::LastMonth => {
         let now = Local::now();
-        let date = Local.ymd(now.year(), now.month() - 1, now.day()).and_hms(
-          now.hour(),
-          now.minute(),
-          now.second(),
-        );
+
+        let month = now.month() - 1;
+
+        let date = if month == 0 {
+          Local.ymd(now.year() - 1, 12, now.day()).and_hms(
+            now.hour(),
+            now.minute(),
+            now.second(),
+          )
+        } else {
+          Local.ymd(now.year(), month, now.day()).and_hms(
+            now.hour(),
+            now.minute(),
+            now.second(),
+          )
+        };
 
         (date.beginning_of_month(), date.end_of_month())
       }
