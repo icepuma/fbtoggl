@@ -51,12 +51,12 @@ fn write_config_file(path: &Path) -> anyhow::Result<()> {
 }
 
 pub fn read_settings() -> anyhow::Result<Settings> {
-  let mut settings = Config::default();
-
   let xdg_dirs = xdg::BaseDirectories::with_prefix(APP_NAME)?;
   let settings_file = xdg_dirs.get_config_file("settings.toml");
 
-  settings.merge(config::File::from(settings_file))?;
+  let settings = Config::builder()
+    .add_source(config::File::from(settings_file))
+    .build()?;
 
-  Ok(settings.try_into()?)
+  Ok(settings.try_deserialize()?)
 }
