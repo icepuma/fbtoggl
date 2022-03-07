@@ -62,7 +62,10 @@ pub struct UserData {
   pub beginning_of_week: u8,
   pub language: String,
   pub image_url: String,
-  pub sidebar_piechart: bool,
+
+  // This shouldn't be an Option:
+  // https://github.com/toggl/toggl_api_docs/blob/master/chapters/users.md#users
+  pub sidebar_piechart: Option<bool>,
   pub at: DateTime<Utc>,
 
   #[serde(default)]
