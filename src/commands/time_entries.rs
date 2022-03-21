@@ -130,10 +130,9 @@ pub fn create(
   let project = projects
     .iter()
     .find(|project| project.name == time_entry.project)
-    .ok_or(anyhow!(format!(
-      "Cannot find project='{}'",
-      time_entry.project
-    )))?;
+    .ok_or_else(|| {
+      anyhow!(format!("Cannot find project='{}'", time_entry.project))
+    })?;
 
   let duration = calculate_duration(time_entry)?;
 
@@ -207,7 +206,7 @@ pub(super) fn calculate_duration(
   } else {
     time_entry
       .duration
-      .ok_or(anyhow!("Please use either --duration or --end"))
+      .ok_or_else(|| anyhow!("Please use either --duration or --end"))
   }
 }
 
@@ -235,10 +234,9 @@ pub fn start(
   let project = projects
     .iter()
     .find(|project| project.name == time_entry.project)
-    .ok_or(anyhow!(format!(
-      "Cannot find project='{}'",
-      time_entry.project
-    )))?;
+    .ok_or_else(|| {
+      anyhow!(format!("Cannot find project='{}'", time_entry.project))
+    })?;
 
   let started_time_entry = client.start_time_entry(
     &time_entry.description,
@@ -268,10 +266,9 @@ pub fn stop(
   let project = projects
     .iter()
     .find(|project| project.name == time_entry.project)
-    .ok_or(anyhow!(format!(
-      "Cannot find project='{}'",
-      time_entry.project
-    )))?;
+    .ok_or_else(|| {
+      anyhow!(format!("Cannot find project='{}'", time_entry.project))
+    })?;
 
   client.stop_time_entry(
     time_entry.id,
