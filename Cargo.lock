@@ -183,6 +183,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "chronoutil"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43a58c924bb772aa201da3acf5308c46b60275c64e6d3bc89c23dd63d71e83fd"
+dependencies = [
+ "chrono",
+]
+
+[[package]]
 name = "clap"
 version = "3.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -413,6 +422,7 @@ version = "0.5.10"
 dependencies = [
  "anyhow",
  "chrono",
+ "chronoutil",
  "clap",
  "colored",
  "config",

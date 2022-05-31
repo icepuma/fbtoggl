@@ -83,6 +83,10 @@ pub struct ListTimeEntries {
   /// Start ('today', 'yesterday', 'this-week', 'last-week', 'this-month', 'last-month', ISO 8601 date '2021-11-01'), ISO 8601 date range '2021-11-01|2021-11-02')
   #[clap(long, default_value = "today")]
   pub range: Range,
+
+  /// Show days which have no entry (monday, tuesday, wednesday, thursday and friday only)
+  #[clap(long)]
+  pub missing: bool,
 }
 
 #[derive(Parser, Debug)]

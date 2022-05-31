@@ -4,8 +4,9 @@ use chrono::Duration;
 use chrono::Local;
 use chrono::NaiveDate;
 use chrono::TimeZone;
-use chrono::Timelike;
 use chrono::Utc;
+use chrono::Weekday;
+use chronoutil::shift_months;
 use now::DateTimeNow;
 use serde::Deserialize;
 use serde::Serialize;
@@ -132,6 +133,32 @@ pub enum Range {
 }
 
 impl Range {
+  pub fn get_datetimes(self) -> Vec<DateTime<Local>> {
+    let (start, end) = self.as_range();
+
+    // range "today" and "yesterday" have different start and end dates,
+    // because toggl.com ranges work like that
+    // => return only start date for missing datetime list
+    if (end - start).num_days() == 1 {
+      return vec![start];
+    }
+
+    let mut it = start;
+    let mut missing_days = vec![];
+
+    while it <= end {
+      let weekday = it.date().weekday();
+
+      if weekday != Weekday::Sat && weekday != Weekday::Sun {
+        missing_days.push(it);
+      }
+
+      it = it + Duration::days(1);
+    }
+
+    missing_days
+  }
+
   pub fn as_range(self) -> (DateTime<Local>, DateTime<Local>) {
     match self {
       Range::Today => {
@@ -171,21 +198,7 @@ impl Range {
       Range::LastMonth => {
         let now = Local::now();
 
-        let month = now.month() - 1;
-
-        let date = if month == 0 {
-          Local.ymd(now.year() - 1, 12, now.day()).and_hms(
-            now.hour(),
-            now.minute(),
-            now.second(),
-          )
-        } else {
-          Local.ymd(now.year(), month, now.day()).and_hms(
-            now.hour(),
-            now.minute(),
-            now.second(),
-          )
-        };
+        let date = shift_months(now, -1);
 
         (date.beginning_of_month(), date.end_of_month())
       }

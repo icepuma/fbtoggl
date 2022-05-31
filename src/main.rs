@@ -39,6 +39,7 @@ fn main() -> anyhow::Result<()> {
         commands::time_entries::list(
           &format,
           &list_time_entries.range,
+          list_time_entries.missing,
           &client,
         )?
       }

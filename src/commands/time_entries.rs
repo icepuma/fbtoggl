@@ -7,7 +7,7 @@ use crate::{
   model::{Client, Project, Range, TimeEntry, Workspace},
 };
 use anyhow::anyhow;
-use chrono::{Duration, NaiveDate};
+use chrono::{DateTime, Duration, Local, NaiveDate};
 use colored::Colorize;
 use hhmmss::Hhmmss;
 use itertools::Itertools;
@@ -30,6 +30,7 @@ struct OutputEntry {
 pub fn list(
   format: &Format,
   range: &Range,
+  missing: bool,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
   let mut time_entries = client.get_time_entries(range)?;
@@ -39,21 +40,50 @@ pub fn list(
     return Ok(());
   }
 
-  let workspaces = client.get_workspaces()?;
-  let me = client.get_me()?;
+  if missing {
+    let mut missing_datetimes = vec![];
 
-  let workspace_id = me.data.default_wid;
+    for date in range.get_datetimes() {
+      if !time_entries
+        .iter()
+        .map(|entry| DateTime::<Local>::from(entry.start).date())
+        .any(|x| x == date.date())
+      {
+        missing_datetimes.push(date);
+      }
+    }
 
-  let projects = client.get_workspace_projects(workspace_id)?;
-  let clients = client.get_workspace_clients(workspace_id)?;
+    if missing_datetimes.is_empty() {
+      println!("No entries found!");
+      return Ok(());
+    }
 
-  let output_entries =
-    collect_output_entries(&mut time_entries, &workspaces, &projects, &clients);
+    match format {
+      Format::Json => output_values_json(&missing_datetimes),
+      Format::Raw => output_missing_days_raw(&missing_datetimes),
+      Format::Table => output_missing_days_table(&missing_datetimes),
+    }
+  } else {
+    let workspaces = client.get_workspaces()?;
+    let me = client.get_me()?;
 
-  match format {
-    Format::Json => output_values_json(&time_entries),
-    Format::Raw => output_values_raw(&output_entries),
-    Format::Table => output_values_table(&output_entries),
+    let workspace_id = me.data.default_wid;
+
+    let projects = client.get_workspace_projects(workspace_id)?;
+    let clients = client.get_workspace_clients(workspace_id)?;
+
+    let output_entries = collect_output_entries(
+      &mut time_entries,
+      &workspaces,
+      &projects,
+      &clients,
+    );
+
+    match format {
+      Format::Json => output_values_json(&time_entries),
+      Format::Raw => output_values_raw(&output_entries),
+      Format::Table => output_values_table(&output_entries),
+    }
   }
 
   Ok(())
@@ -173,7 +203,7 @@ pub fn create(
     )?;
   }
 
-  list(format, &Range::Today, client)?;
+  list(format, &Range::Today, false, client)?;
 
   Ok(())
 }
@@ -277,7 +307,7 @@ pub fn stop(
     project.id,
   )?;
 
-  list(format, &Range::Today, client)?;
+  list(format, &Range::Today, false, client)?;
 
   Ok(())
 }
@@ -289,7 +319,7 @@ pub fn delete(
 ) -> anyhow::Result<()> {
   client.delete_time_entry(time_entry.id)?;
 
-  list(format, &Range::Today, client)?;
+  list(format, &Range::Today, false, client)?;
 
   Ok(())
 }
@@ -342,6 +372,28 @@ fn output_time_entry_table(time_entry: &TimeEntry) {
   ]));
 
   println!("{}", table.render());
+}
+
+fn output_missing_days_table(missing_datetimes: &[DateTime<Local>]) {
+  let mut table = Table::new();
+  table.style = TableStyle::thin();
+  table.separate_rows = false;
+
+  let header = Row::new(vec![TableCell::new("Date".bold().underline())]);
+
+  table.add_row(header);
+
+  for missing_datetime in missing_datetimes {
+    table.add_row(Row::new(vec![TableCell::new(&missing_datetime.date())]));
+  }
+
+  println!("{}", table.render());
+}
+
+fn output_missing_days_raw(missing_datetimes: &[DateTime<Local>]) {
+  for missing_datetime in missing_datetimes {
+    println!("{}", missing_datetime.date());
+  }
 }
 
 fn output_values_raw(output_entries: &[OutputEntry]) {
