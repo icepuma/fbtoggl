@@ -141,7 +141,7 @@ fn collect_output_entries(
         .map(|c| c.name.to_owned())
         .unwrap_or_else(|| "-".to_string()),
       description: entry.description.to_owned().unwrap_or_default(),
-      billable: entry.billable,
+      billable: entry.billable.unwrap_or_default(),
     })
   }
 
