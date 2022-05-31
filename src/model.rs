@@ -93,7 +93,7 @@ pub struct DataWith<T> {
 pub struct TimeEntry {
   pub id: u64,
   pub wid: u64,
-  pub pid: u64,
+  pub pid: Option<u64>,
   pub billable: bool,
   pub start: DateTime<Utc>,
   pub stop: Option<DateTime<Utc>>,

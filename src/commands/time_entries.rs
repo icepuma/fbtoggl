@@ -116,7 +116,7 @@ fn collect_output_entries(
 
   for entry in values {
     let maybe_workspace = workspace_lookup.get(&entry.wid);
-    let maybe_project = project_lookup.get(&entry.pid);
+    let maybe_project = &entry.pid.and_then(|pid| project_lookup.get(&pid));
     let maybe_client = maybe_project
       .and_then(|project| project.cid.and_then(|c| client_lookup.get(&c)));
 
