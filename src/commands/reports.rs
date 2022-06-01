@@ -49,8 +49,15 @@ pub fn detailed(
   }
 
   for (user, time_entries) in time_entries_by_user {
+    let hours = time_entries
+      .iter()
+      .map(|time_entry| {
+        Duration::milliseconds(time_entry.dur as i64).num_hours()
+      })
+      .sum::<i64>();
+
     println!();
-    println!("{}", user);
+    println!("{} - {} hours", user, hours);
     println!();
 
     let time_entries_by_date = time_entries
