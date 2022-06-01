@@ -11,6 +11,9 @@ use now::DateTimeNow;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
+use std::fmt;
+use std::fmt::Display;
+use std::fmt::Formatter;
 use std::str::FromStr;
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -243,4 +246,62 @@ impl FromStr for Range {
       },
     }
   }
+}
+
+impl Display for Range {
+  fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    let range = self.as_range();
+
+    let text = format!(
+      "{} - {}",
+      range.0.format("%Y-%m-%d"),
+      range.1.format("%Y-%m-%d")
+    );
+
+    write!(f, "{}", text)
+  }
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct Currency {
+  pub currency: Option<String>,
+  pub amount: Option<f64>,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct ReportTimeEntry {
+  pub id: u64,
+  pub pid: u64,
+  pub project: String,
+  pub client: String,
+  pub tid: Option<u64>,
+  pub task: Option<String>,
+  pub uid: u64,
+  pub user: String,
+  pub description: String,
+  pub start: DateTime<Utc>,
+  pub end: DateTime<Utc>,
+  pub dur: u64,
+  pub updated: DateTime<Utc>,
+  pub use_stop: bool,
+  pub is_billable: bool,
+  pub billable: f64,
+  pub cur: String,
+
+  #[serde(default)]
+  pub tags: Vec<String>,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct ReportDetails {
+  pub total_grand: Option<u64>,
+  pub total_billable: Option<u64>,
+
+  #[serde(default)]
+  pub total_currencies: Vec<Currency>,
+
+  pub total_count: u64,
+  pub per_page: u64,
+
+  pub data: Vec<ReportTimeEntry>,
 }

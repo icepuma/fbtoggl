@@ -43,6 +43,23 @@ pub enum SubCommand {
   /// Clients (default workspace)
   #[clap(subcommand)]
   Clients(Clients),
+
+  /// Reports
+  #[clap(subcommand)]
+  Reports(Reports),
+}
+
+#[derive(Subcommand, Debug)]
+pub enum Reports {
+  /// Detailed report with violations: more than 10 hours, start before 6am and end after 10pm
+  Detailed(Detailed),
+}
+
+#[derive(Parser, Debug)]
+pub struct Detailed {
+  /// Start ('today', 'yesterday', 'this-week', 'last-week', 'this-month', 'last-month', ISO 8601 date '2021-11-01'), ISO 8601 date range '2021-11-01|2021-11-02')
+  #[clap(long, default_value = "today")]
+  pub range: Range,
 }
 
 #[derive(Subcommand, Debug)]

@@ -1,5 +1,6 @@
 pub mod clients;
 pub mod projects;
+pub mod reports;
 pub mod time_entries;
 pub mod workspaces;
 

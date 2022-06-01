@@ -1,0 +1,123 @@
+use chrono::{Date, DateTime, Duration, Local, Utc};
+use colored::Colorize;
+use itertools::Itertools;
+
+use chrono::Timelike;
+
+use crate::{
+  cli::Format, client::TogglClient, model::Range,
+  report_client::TogglReportClient,
+};
+
+pub fn detailed(
+  _format: &Format,
+  client: &TogglClient,
+  range: &Range,
+  report_client: &TogglReportClient,
+) -> anyhow::Result<()> {
+  let me = client.get_me()?;
+
+  let mut time_entries = vec![];
+
+  let details = report_client.details(me.data.default_wid, range, 1)?;
+
+  for time_entry in details.data {
+    time_entries.push(time_entry);
+  }
+
+  let total_count = details.total_count;
+  let pages = (total_count as f64 / 50.0).ceil() as u64;
+
+  for page in 2..=pages {
+    let details = report_client.details(me.data.default_wid, range, page)?;
+
+    for time_entry in details.data {
+      time_entries.push(time_entry);
+    }
+  }
+
+  println!("Range: {}", range);
+
+  let time_entries_by_user =
+    time_entries.iter().into_group_map_by(|a| a.user.to_owned());
+
+  if time_entries_by_user.is_empty() {
+    println!();
+    println!("No time entries found.");
+
+    return Ok(());
+  }
+
+  for (user, time_entries) in time_entries_by_user {
+    println!();
+    println!("{}", user);
+    println!();
+
+    let time_entries_by_date = time_entries
+      .iter()
+      .into_group_map_by(|time_entry| time_entry.start.date());
+
+    let mut dates = time_entries_by_date.keys().collect::<Vec<&Date<Utc>>>();
+    dates.sort();
+
+    for date in dates {
+      let time_entries = time_entries_by_date.get(date).unwrap();
+
+      let hours = time_entries
+        .iter()
+        .map(|time_entry| {
+          Duration::milliseconds(time_entry.dur as i64).num_hours()
+        })
+        .sum::<i64>();
+
+      let start = time_entries
+        .iter()
+        .min_by_key(|time_entry| time_entry.start)
+        .map(|time_entry| DateTime::<Local>::from(time_entry.start));
+
+      let end = time_entries
+        .iter()
+        .max_by_key(|time_entry| time_entry.end)
+        .map(|time_entry| DateTime::<Local>::from(time_entry.end));
+
+      let mut warnings = vec![];
+
+      if hours >= 10 {
+        warnings.push("10 hours or more".red().to_string());
+      }
+
+      if let Some(start) = start {
+        if start.time().hour() < 6 {
+          warnings.push("Start time is before 6am".red().to_string());
+        }
+      }
+
+      if let Some(end) = end {
+        if end.time().hour() > 22 {
+          warnings.push("End time is after 10pm".red().to_string());
+        }
+      }
+
+      let formatted_warnings = if !warnings.is_empty() {
+        format!(" | {}", warnings.join(", ").bold())
+      } else {
+        "".to_string()
+      };
+
+      println!(
+        "{} - {} - {} | {} hours{}",
+        date.format("%Y-%m-%d"),
+        start
+          .map(|s| s.format("%H:%M").to_string())
+          .unwrap_or_default(),
+        end
+          .map(|s| s.format("%H:%M").to_string())
+          .unwrap_or_default(),
+        hours,
+        formatted_warnings
+      );
+    }
+  }
+
+  Ok(())
+}

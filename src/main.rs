@@ -1,13 +1,16 @@
 use crate::cli::{Clients, Options, SubCommand, TimeEntries};
 use crate::config::init_settings_file;
 use clap::Parser;
+use cli::Reports;
 use client::init_client;
+use report_client::init_report_client;
 
 mod cli;
 mod client;
 mod commands;
 mod config;
 mod model;
+mod report_client;
 
 #[cfg(test)]
 mod client_tests;
@@ -69,6 +72,20 @@ fn main() -> anyhow::Result<()> {
       Clients::List => {
         let client = init_client()?;
         commands::clients::list(&format, &client)?;
+      }
+    },
+
+    SubCommand::Reports(action) => match action {
+      Reports::Detailed(detailed) => {
+        let client = init_client()?;
+        let report_client = init_report_client()?;
+
+        commands::reports::detailed(
+          &format,
+          &client,
+          &detailed.range,
+          &report_client,
+        )?;
       }
     },
   }
