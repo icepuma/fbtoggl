@@ -1,13 +1,19 @@
+use chrono::Timelike;
 use chrono::{Date, DateTime, Duration, Local, Utc};
 use colored::Colorize;
+use humantime::format_duration;
 use itertools::Itertools;
-
-use chrono::Timelike;
 
 use crate::{
   cli::Format, client::TogglClient, model::Range,
   report_client::TogglReportClient,
 };
+
+fn formatted_duration(duration: Duration) -> String {
+  duration
+    .to_std()
+    .map_or_else(|_| "".to_string(), |h| format_duration(h).to_string())
+}
 
 pub fn detailed(
   _format: &Format,
@@ -49,15 +55,13 @@ pub fn detailed(
   }
 
   for (user, time_entries) in time_entries_by_user {
-    let hours = time_entries
+    let total_hours = time_entries
       .iter()
-      .map(|time_entry| {
-        Duration::milliseconds(time_entry.dur as i64).num_hours()
-      })
-      .sum::<i64>();
+      .map(|time_entry| Duration::milliseconds(time_entry.dur as i64))
+      .fold(Duration::zero(), |a, b| a + b);
 
     println!();
-    println!("{} - {} hours", user, hours);
+    println!("{} - {}", user, formatted_duration(total_hours));
     println!();
 
     let time_entries_by_date = time_entries
@@ -72,10 +76,8 @@ pub fn detailed(
 
       let hours = time_entries
         .iter()
-        .map(|time_entry| {
-          Duration::milliseconds(time_entry.dur as i64).num_hours()
-        })
-        .sum::<i64>();
+        .map(|time_entry| Duration::milliseconds(time_entry.dur as i64))
+        .fold(Duration::zero(), |a, b| a + b);
 
       let start = time_entries
         .iter()
@@ -87,9 +89,17 @@ pub fn detailed(
         .max_by_key(|time_entry| time_entry.end)
         .map(|time_entry| DateTime::<Local>::from(time_entry.end));
 
+      let r#break = if let (Some(start), Some(end)) = (start, end) {
+        let total = end - start;
+
+        Some(total - hours)
+      } else {
+        None
+      };
+
       let mut warnings = vec![];
 
-      if hours >= 10 {
+      if hours.num_hours() >= 10 {
         warnings.push("10 hours or more".red().to_string());
       }
 
@@ -105,6 +115,41 @@ pub fn detailed(
         }
       }
 
+      let hours_formatted = formatted_duration(hours);
+
+      // https://www.gesetze-im-internet.de/arbzg/__4.html#:~:text=Arbeitszeitgesetz%20(ArbZG),neun%20Stunden%20insgesamt%20zu%20unterbrechen.
+      let formatted_break = if let Some(r#break) = r#break {
+        // between 6 and less than 10 hours, break has to be at least 30 minutes
+        if (hours > Duration::hours(5) || hours < Duration::hours(10))
+          && r#break < Duration::minutes(30)
+        {
+          warnings.push(
+            format!(
+              "Worked for {} => break should be at least 30 minutes!",
+              hours_formatted
+            )
+            .red()
+            .to_string(),
+          );
+        }
+        // more than 9 hours, break has to be at least 45 minutes
+        else if hours > Duration::hours(9) && r#break < Duration::minutes(45)
+        {
+          warnings.push(
+            format!(
+              "Worked for {} => break should be at least 45 minutes!",
+              hours_formatted
+            )
+            .red()
+            .to_string(),
+          );
+        }
+
+        format!(", Break: {}", formatted_duration(r#break))
+      } else {
+        "".to_string()
+      };
+
       let formatted_warnings = if !warnings.is_empty() {
         format!(" | {}", warnings.join(", ").bold())
       } else {
@@ -112,7 +157,7 @@ pub fn detailed(
       };
 
       println!(
-        "{} - {} - {} | {} hours{}",
+        "{} - {} - {} | Work: {}{}{}",
         date.format("%Y-%m-%d"),
         start
           .map(|s| s.format("%H:%M").to_string())
@@ -120,7 +165,8 @@ pub fn detailed(
         end
           .map(|s| s.format("%H:%M").to_string())
           .unwrap_or_default(),
-        hours,
+        hours_formatted,
+        formatted_break,
         formatted_warnings
       );
     }

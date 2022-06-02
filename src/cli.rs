@@ -51,7 +51,7 @@ pub enum SubCommand {
 
 #[derive(Subcommand, Debug)]
 pub enum Reports {
-  /// Detailed report with violations: more than 10 hours, start before 6am and end after 10pm
+  /// Detailed report with violations: more than 10 hours, start before 6am, end after 10pm and pause violations (Arbeitszeitgesetz (ArbZG) § 4 Ruhepausen)
   Detailed(Detailed),
 }
 

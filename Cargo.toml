@@ -37,6 +37,7 @@ colored = "2"
 hhmmss = "0.1"
 itertools = "0"
 htp = "0"
+humantime = "2"
 
 [dev-dependencies]
 env_logger = "0"
