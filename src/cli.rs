@@ -9,14 +9,14 @@ pub const APP_NAME: &str = "fbtoggl";
 #[derive(Parser)]
 #[clap(author, about, version)]
 pub struct Options {
-  #[clap(long, arg_enum, default_value = "raw")]
+  #[clap(long, arg_enum, value_parser, default_value = "raw")]
   pub format: Format,
 
   #[clap(subcommand)]
   pub subcommand: SubCommand,
 }
 
-#[derive(ArgEnum, Debug, Clone)]
+#[derive(Debug, Clone, ArgEnum)]
 pub enum Format {
   Json,
   Raw,
@@ -58,7 +58,7 @@ pub enum Reports {
 #[derive(Parser, Debug)]
 pub struct Detailed {
   /// Start ('today', 'yesterday', 'this-week', 'last-week', 'this-month', 'last-month', ISO 8601 date '2021-11-01'), ISO 8601 date range '2021-11-01|2021-11-02')
-  #[clap(long, default_value = "today")]
+  #[clap(long, default_value = "today", value_parser)]
   pub range: Range,
 }
 
@@ -98,24 +98,24 @@ pub enum TimeEntries {
 #[derive(Parser, Debug)]
 pub struct ListTimeEntries {
   /// Start ('today', 'yesterday', 'this-week', 'last-week', 'this-month', 'last-month', ISO 8601 date '2021-11-01'), ISO 8601 date range '2021-11-01|2021-11-02')
-  #[clap(long, default_value = "today")]
+  #[clap(long, default_value = "today", value_parser)]
   pub range: Range,
 
   /// Show days which have no entry (monday, tuesday, wednesday, thursday and friday only)
-  #[clap(long)]
+  #[clap(long, value_parser)]
   pub missing: bool,
 }
 
 #[derive(Parser, Debug)]
 pub struct CreateClient {
   /// Name of the client
-  #[clap(long)]
+  #[clap(long, value_parser)]
   pub name: String,
 }
 
 fn parse_duration(duration_to_parse: &str) -> anyhow::Result<Duration> {
-  let bla = duration(duration_to_parse)?;
-  Ok(Duration::from_std(bla)?)
+  let duration = duration(duration_to_parse)?;
+  Ok(Duration::from_std(duration)?)
 }
 
 fn parse_time(time_to_parse: &str) -> anyhow::Result<DateTime<Local>> {
@@ -126,99 +126,99 @@ fn parse_time(time_to_parse: &str) -> anyhow::Result<DateTime<Local>> {
 #[derive(Parser, Debug)]
 pub struct CreateTimeEntry {
   /// Name of the project
-  #[clap(long)]
+  #[clap(long, value_parser)]
   pub project: String,
 
   /// Description of the timer
-  #[clap(long)]
+  #[clap(long, value_parser)]
   pub description: Option<String>,
 
   /// Tags
-  #[clap(long)]
+  #[clap(long, value_parser)]
   pub tags: Option<Vec<String>>,
 
   /// Duration ('1 hour', '10 minutes', '1 hour 12 minutes')
   #[clap(
     long,
-    parse(try_from_str = parse_duration),
+    value_parser = parse_duration,
     conflicts_with = "end"
   )]
   pub duration: Option<Duration>,
 
   /// Lunch break (if set, adds a lunch break of 1 hour)
-  #[clap(long)]
+  #[clap(long, value_parser)]
   pub lunch_break: bool,
 
   /// Start ('now', 'today at 6am', '2021-11-30T06:00', '2 hours ago', 'yesterday at 6am')
   #[clap(
     long,
     default_value = "now",
-    parse(try_from_str = parse_time)
+    value_parser = parse_time,
   )]
   pub start: DateTime<Local>,
 
   /// Start ('now', 'today at 6am', '2021-11-30T06:00', '2 hours ago', 'yesterday at 6am')
   #[clap(
     long,
-    parse(try_from_str = parse_time),
+    value_parser = parse_time,
     conflicts_with = "duration"
   )]
   pub end: Option<DateTime<Local>>,
 
   /// Time entry is non-billable
-  #[clap(long)]
+  #[clap(long, value_parser)]
   pub non_billable: bool,
 }
 
 #[derive(Parser, Debug)]
 pub struct StartTimeEntry {
   /// Name of the project
-  #[clap(long)]
+  #[clap(long, value_parser)]
   pub project: String,
 
   /// Description of the timer
-  #[clap(long)]
+  #[clap(long, value_parser)]
   pub description: Option<String>,
 
   /// Tags
-  #[clap(long)]
+  #[clap(long, value_parser)]
   pub tags: Option<Vec<String>>,
 
   /// Time entry is non-billable
-  #[clap(long)]
+  #[clap(long, value_parser)]
   pub non_billable: bool,
 }
 
 #[derive(Parser, Debug)]
 pub struct StopTimeEntry {
   /// Id of the time entry
-  #[clap(long)]
+  #[clap(long, value_parser)]
   pub id: u64,
 
   /// Name of the project
-  #[clap(long)]
+  #[clap(long, value_parser)]
   pub project: String,
 
   /// Description of the timer
-  #[clap(long)]
+  #[clap(long, value_parser)]
   pub description: Option<String>,
 
   /// Tags
-  #[clap(long)]
+  #[clap(long, value_parser)]
   pub tags: Option<Vec<String>>,
 }
 
 #[derive(Parser, Debug)]
 pub struct DeleteTimeEntry {
   /// Id of the time entry
-  #[clap(long)]
+  #[clap(long, value_parser)]
   pub id: u64,
 }
 
 #[derive(Parser, Debug)]
 pub struct TimeEntryDetails {
   /// Id of the time entry
-  #[clap(long)]
+  #[clap(long, value_parser)]
   pub id: u64,
 }
 
