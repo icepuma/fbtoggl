@@ -11,6 +11,7 @@ license = "WTFPL"
 
 [dependencies]
 clap = { version = "3", features = [
+    "deprecated",
     "derive",
     "suggestions",
     "color",
