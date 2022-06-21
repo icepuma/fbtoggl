@@ -41,17 +41,23 @@ pub fn list(
   }
 
   if missing {
-    let mut missing_datetimes = vec![];
+    let missing_datetimes = if time_entries.is_empty() {
+      range.get_datetimes()
+    } else {
+      let mut missing_datetimes = vec![];
 
-    for date in range.get_datetimes() {
-      if !time_entries
-        .iter()
-        .map(|entry| DateTime::<Local>::from(entry.start).date())
-        .any(|x| x == date.date())
-      {
-        missing_datetimes.push(date);
+      for date in range.get_datetimes() {
+        if !time_entries
+          .iter()
+          .map(|entry| DateTime::<Local>::from(entry.start).date())
+          .any(|x| x == date.date())
+        {
+          missing_datetimes.push(date);
+        }
       }
-    }
+
+      missing_datetimes
+    };
 
     if missing_datetimes.is_empty() {
       println!("No entries found!");
