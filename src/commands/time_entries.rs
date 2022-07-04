@@ -35,11 +35,6 @@ pub fn list(
 ) -> anyhow::Result<()> {
   let mut time_entries = client.get_time_entries(range)?;
 
-  if time_entries.is_empty() {
-    println!("No entries found!");
-    return Ok(());
-  }
-
   if missing {
     let missing_datetimes = if time_entries.is_empty() {
       range.get_datetimes()
@@ -70,6 +65,11 @@ pub fn list(
       Format::Table => output_missing_days_table(&missing_datetimes),
     }
   } else {
+    if time_entries.is_empty() {
+      println!("No entries found!");
+      return Ok(());
+    }
+
     let workspaces = client.get_workspaces()?;
     let me = client.get_me()?;
 
