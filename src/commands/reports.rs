@@ -120,7 +120,7 @@ pub fn detailed(
       // https://www.gesetze-im-internet.de/arbzg/__4.html#:~:text=Arbeitszeitgesetz%20(ArbZG),neun%20Stunden%20insgesamt%20zu%20unterbrechen.
       let formatted_break = if let Some(r#break) = r#break {
         // between 6 and less than 10 hours, break has to be at least 30 minutes
-        if (hours > Duration::hours(5) && hours < Duration::hours(10))
+        if (hours > Duration::hours(6) && hours < Duration::hours(10))
           && r#break < Duration::minutes(30)
         {
           warnings.push(
