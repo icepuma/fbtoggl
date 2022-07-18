@@ -149,7 +149,7 @@ pub struct CreateTimeEntry {
   #[clap(long, value_parser)]
   pub lunch_break: bool,
 
-  /// Start ('now', 'today at 6am', '2021-11-30T06:00', '2 hours ago', 'yesterday at 6am')
+  /// Start (e.g. 'now', 'today at 6am', 'yesterday at 16:30' '2021-11-30T06:00', '2 hours ago', 'yesterday at 6am') - All possible formats https://github.com/PicoJr/htp/blob/HEAD/src/time.pest
   #[clap(
     long,
     default_value = "now",
@@ -157,7 +157,7 @@ pub struct CreateTimeEntry {
   )]
   pub start: DateTime<Local>,
 
-  /// Start ('now', 'today at 6am', '2021-11-30T06:00', '2 hours ago', 'yesterday at 6am')
+  /// End (e.g. 'now', 'today at 6am', 'yesterday at 16:30' '2021-11-30T06:00', '2 hours ago', 'yesterday at 6am') - All possible formats https://github.com/PicoJr/htp/blob/HEAD/src/time.pest
   #[clap(
     long,
     value_parser = parse_time,
