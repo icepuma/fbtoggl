@@ -19,9 +19,6 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::json;
 
-#[cfg(test)]
-use mockito;
-
 pub struct TogglClient {
   base_url: Url,
   client: blocking::Client,

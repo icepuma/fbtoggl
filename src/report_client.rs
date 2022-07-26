@@ -8,9 +8,6 @@ use reqwest::StatusCode;
 use reqwest::Url;
 use serde::de::DeserializeOwned;
 
-#[cfg(test)]
-use mockito;
-
 pub struct TogglReportClient {
   base_url: Url,
   client: blocking::Client,
