@@ -156,7 +156,7 @@ impl Range {
         missing_days.push(it);
       }
 
-      it = it + Duration::days(1);
+      it += Duration::days(1);
     }
 
     missing_days
