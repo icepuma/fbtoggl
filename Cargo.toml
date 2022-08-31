@@ -40,6 +40,9 @@ itertools = "0"
 htp = "0"
 humantime = "2"
 
+# fix https://github.com/advisories/GHSA-m5pq-gvj9-9vr8
+regex = "1.5.5"
+
 [dev-dependencies]
 env_logger = "0"
 ctor = "0"
