@@ -1,7 +1,7 @@
 use crate::{
   cli::{
     output_values_json, CreateTimeEntry, DeleteTimeEntry, Format,
-    StartTimeEntry, StopTimeEntry, TimeEntryDetails,
+    StartTimeEntry, StopTimeEntry,
   },
   client::TogglClient,
   model::{Client, Project, Range, TimeEntry, Workspace},
@@ -73,10 +73,12 @@ pub fn list(
     let workspaces = client.get_workspaces()?;
     let me = client.get_me()?;
 
-    let workspace_id = me.data.default_wid;
+    let workspace_id = me.default_workspace_id;
 
     let projects = client.get_workspace_projects(workspace_id)?;
-    let clients = client.get_workspace_clients(workspace_id)?;
+    let clients = client
+      .get_workspace_clients(workspace_id)?
+      .unwrap_or_default();
 
     let output_entries = collect_output_entries(
       &mut time_entries,
@@ -160,7 +162,7 @@ pub fn create(
   client: &TogglClient,
 ) -> anyhow::Result<()> {
   let me = client.get_me()?;
-  let workspace_id = me.data.default_wid;
+  let workspace_id = me.default_workspace_id;
   let projects = client.get_workspace_projects(workspace_id)?;
 
   let project = projects
@@ -264,7 +266,7 @@ pub fn start(
   client: &TogglClient,
 ) -> anyhow::Result<()> {
   let me = client.get_me()?;
-  let workspace_id = me.data.default_wid;
+  let workspace_id = me.default_workspace_id;
   let projects = client.get_workspace_projects(workspace_id)?;
 
   let project = projects
@@ -275,6 +277,8 @@ pub fn start(
     })?;
 
   let started_time_entry = client.start_time_entry(
+    chrono::Local::now(),
+    workspace_id,
     &time_entry.description,
     &time_entry.tags,
     project.id,
@@ -282,9 +286,9 @@ pub fn start(
   )?;
 
   match format {
-    Format::Json => output_values_json(&[started_time_entry.data]),
-    Format::Raw => output_time_entry_raw(&started_time_entry.data),
-    Format::Table => output_time_entry_table(&started_time_entry.data),
+    Format::Json => output_values_json(&[started_time_entry]),
+    Format::Raw => output_time_entry_raw(&started_time_entry),
+    Format::Table => output_time_entry_table(&started_time_entry),
   }
 
   Ok(())
@@ -296,22 +300,9 @@ pub fn stop(
   client: &TogglClient,
 ) -> anyhow::Result<()> {
   let me = client.get_me()?;
-  let workspace_id = me.data.default_wid;
-  let projects = client.get_workspace_projects(workspace_id)?;
+  let workspace_id = me.default_workspace_id;
 
-  let project = projects
-    .iter()
-    .find(|project| project.name == time_entry.project)
-    .ok_or_else(|| {
-      anyhow!(format!("Cannot find project='{}'", time_entry.project))
-    })?;
-
-  client.stop_time_entry(
-    time_entry.id,
-    &time_entry.description,
-    &time_entry.tags,
-    project.id,
-  )?;
+  client.stop_time_entry(workspace_id, time_entry.id)?;
 
   list(format, &Range::Today, false, client)?;
 
@@ -330,29 +321,17 @@ pub fn delete(
   Ok(())
 }
 
-pub fn details(
-  format: &Format,
-  time_entry: &TimeEntryDetails,
-  client: &TogglClient,
-) -> anyhow::Result<()> {
-  let time_entry_details = client.time_entry_details(time_entry.id)?;
-
-  match format {
-    Format::Json => output_values_json(&[time_entry_details.data]),
-    Format::Raw => output_time_entry_raw(&time_entry_details.data),
-    Format::Table => output_time_entry_table(&time_entry_details.data),
-  }
-
-  Ok(())
-}
-
 fn output_time_entry_raw(time_entry: &TimeEntry) {
   println!(
     "{}\t{}\t{}\t{}",
     &time_entry.id,
     &time_entry.start,
     &time_entry.description.to_owned().unwrap_or_default(),
-    &time_entry.tags.join(", "),
+    &time_entry
+      .tags
+      .as_ref()
+      .map(|tags| tags.join(", "))
+      .unwrap_or_default(),
   );
 }
 
@@ -374,7 +353,13 @@ fn output_time_entry_table(time_entry: &TimeEntry) {
     TableCell::new(&time_entry.id),
     TableCell::new(&time_entry.start),
     TableCell::new(&time_entry.description.to_owned().unwrap_or_default()),
-    TableCell::new(&time_entry.tags.join(", ")),
+    TableCell::new(
+      &time_entry
+        .tags
+        .as_ref()
+        .map(|tags| tags.join(", "))
+        .unwrap_or_default(),
+    ),
   ]));
 
   println!("{}", table.render());

@@ -10,7 +10,6 @@ use chronoutil::shift_months;
 use now::DateTimeNow;
 use serde::Deserialize;
 use serde::Serialize;
-use std::collections::HashMap;
 use std::fmt;
 use std::fmt::Display;
 use std::fmt::Formatter;
@@ -20,16 +19,6 @@ use std::str::FromStr;
 pub struct Workspace {
   pub id: u64,
   pub name: String,
-  pub premium: bool,
-  pub admin: bool,
-  pub default_hourly_rate: f64,
-  pub default_currency: String,
-  pub only_admins_may_create_projects: bool,
-  pub only_admins_see_billable_rates: bool,
-  pub rounding: i8,
-  pub rounding_minutes: i8,
-  pub at: DateTime<Utc>,
-  pub logo_url: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -38,58 +27,11 @@ pub struct Project {
   pub name: String,
   pub wid: u64,
   pub cid: Option<u64>,
-  pub active: bool,
-  pub is_private: bool,
-  pub template: Option<bool>,
-  pub template_id: Option<u64>,
-  pub billable: bool,
-  pub auto_estimates: bool,
-  pub estimated_hours: Option<u64>,
-  pub at: DateTime<Utc>,
-  pub color: String,
-  pub rate: Option<f64>,
-  pub created_at: DateTime<Utc>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct UserData {
-  pub id: u64,
-  pub api_token: String,
-  pub default_wid: u64,
-  pub email: String,
-  pub fullname: String,
-  pub jquery_timeofday_format: String,
-  pub jquery_date_format: String,
-  pub timeofday_format: String,
-  pub date_format: String,
-  pub store_start_and_stop_time: bool,
-  pub beginning_of_week: u8,
-  pub language: String,
-  pub image_url: String,
-
-  // This shouldn't be an Option:
-  // https://github.com/toggl/toggl_api_docs/blob/master/chapters/users.md#users
-  pub sidebar_piechart: Option<bool>,
-  pub at: DateTime<Utc>,
-
-  #[serde(default)]
-  pub new_blog_post: HashMap<String, String>,
-  pub send_product_emails: bool,
-  pub send_weekly_report: bool,
-  pub send_timer_notifications: bool,
-  pub openid_enabled: bool,
-  pub timezone: String,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-pub struct SinceWith<T> {
-  pub since: u64,
-  pub data: T,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-pub struct DataWith<T> {
-  pub data: T,
+pub struct Me {
+  pub default_workspace_id: u64,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -104,23 +46,16 @@ pub struct TimeEntry {
   pub description: Option<String>,
 
   #[serde(default)]
-  pub tags: Vec<String>,
+  pub tags: Option<Vec<String>>,
 
   #[serde(default)]
   pub duronly: bool,
-  pub at: Option<DateTime<Utc>>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Client {
   pub id: u64,
   pub name: String,
-  pub wid: u64,
-  pub notes: Option<String>,
-
-  // This shouldn't be an Option:
-  // https://github.com/toggl/toggl_api_docs/blob/master/chapters/clients.md#create-a-client
-  pub at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Copy)]

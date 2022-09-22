@@ -26,38 +26,7 @@ fn teardown() {
 fn get_me() -> anyhow::Result<()> {
   let body = json!(
     {
-      "since": 1234567890,
-      "data": {
-        "id": 1234567,
-        "api_token": "cb7bf7efa6d652046abd2f7d84ee18c1",
-        "default_wid": 1234567,
-        "email": "ralph.bower@fkbr.org",
-        "fullname": "Ralph Bower",
-        "jquery_timeofday_format": "H:i",
-        "jquery_date_format": "Y-m-d",
-        "timeofday_format": "H:mm",
-        "date_format": "YYYY-MM-DD",
-        "store_start_and_stop_time": true,
-        "beginning_of_week": 1,
-        "language": "en_US",
-        "image_url": "https://assets.track.toggl.com/images/profile.png",
-        "sidebar_piechart": true,
-        "at": "2021-11-16T08:45:25+00:00",
-        "created_at": "2021-11-16T08:41:05+00:00",
-        "retention": 9,
-        "record_timeline": false,
-        "render_timeline": false,
-        "timeline_enabled": false,
-        "timeline_experiment": false,
-        "should_upgrade": false,
-        "timezone": "Europe/Berlin",
-        "openid_enabled": false,
-        "send_product_emails": true,
-        "send_weekly_report": true,
-        "send_timer_notifications": true,
-        "invitation": {},
-        "duration_format": "improved"
-      }
+      "default_workspace_id": 1234567,
     }
   );
 
@@ -76,9 +45,7 @@ fn get_me() -> anyhow::Result<()> {
       TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
     let me = client.get_me()?;
 
-    assert_eq!(me.data.email, "ralph.bower@fkbr.org");
-    assert_eq!(me.data.api_token, "cb7bf7efa6d652046abd2f7d84ee18c1");
-    assert_eq!(me.data.fullname, "Ralph Bower");
+    assert_eq!(me.default_workspace_id, 1234567);
   }
 
   mock.assert();
@@ -172,16 +139,14 @@ fn get_workspace_clients() -> anyhow::Result<()> {
     let client =
       TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
 
-    let clients = client.get_workspace_clients(12345678)?;
+    let clients = client.get_workspace_clients(12345678)?.unwrap_or_default();
     let first_client = clients.get(0).unwrap();
     let second_client = clients.get(1).unwrap();
 
     assert_eq!(first_client.id, 1234);
-    assert_eq!(first_client.wid, 12345678);
     assert_eq!(first_client.name, "fkbr.org");
 
     assert_eq!(second_client.id, 2345);
-    assert_eq!(second_client.wid, 12345678);
     assert_eq!(second_client.name, "beta male gmbh");
   }
 
@@ -298,15 +263,18 @@ fn get_time_entries() -> anyhow::Result<()> {
     ]
   );
 
-  let mock = mock("GET", "/time_entries?start_date=2021-11-21T00%3A00%3A00%2B01%3A00&end_date=2021-11-22T00%3A00%3A00%2B01%3A00")
-      .with_header(
-        "Authorization",
-        "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
-      )
-      .with_status(200)
-      .with_body(body.to_string())
-      .expect(1)
-      .create();
+  let mock = mock(
+    "GET",
+    "/me/time_entries?start_date=2021-11-21&end_date=2021-11-22",
+  )
+  .with_header(
+    "Authorization",
+    "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+  )
+  .with_status(200)
+  .with_body(body.to_string())
+  .expect(1)
+  .create();
 
   {
     let client =
@@ -335,41 +303,37 @@ fn get_time_entries() -> anyhow::Result<()> {
 fn create_time_entry() -> anyhow::Result<()> {
   let request_body = json!(
     {
-      "time_entry": {
-        "description": "Wurst",
-        "wid": 123456789,
-        "tags": ["aa", "bb"],
-        "duration": 200,
-        "start": "2021-11-21T23:58:09+01:00",
-        "pid": 123456789,
-        "created_with": CREATED_WITH,
-        "billable": true,
-      }
+      "description": "Wurst",
+      "workspace_id": 123456789,
+      "tags": ["aa", "bb"],
+      "duration": 200,
+      "start": "2021-11-21T23:58:09+01:00",
+      "project_id": 123456789,
+      "created_with": CREATED_WITH,
+      "billable": true,
     }
   );
 
   let response_body = json!(
     {
-      "data": {
-        "id": 1234567890,
-        "wid": 123456789,
-        "pid": 123456789,
-        "billable": true,
-        "start": "2021-11-21T23:58:09+01:00",
-        "duration": 200,
-        "description": "Wurst",
-        "tags": [
-          "aa",
-          "bb"
-        ],
-        "duronly": false,
-        "at": "2021-11-21T23:58:09+01:00",
-        "uid": 123456789
-      }
+      "id": 1234567890,
+      "wid": 123456789,
+      "pid": 123456789,
+      "billable": true,
+      "start": "2021-11-21T23:58:09+01:00",
+      "duration": 200,
+      "description": "Wurst",
+      "tags": [
+        "aa",
+        "bb"
+      ],
+      "duronly": false,
+      "at": "2021-11-21T23:58:09+01:00",
+      "uid": 123456789
     }
   );
 
-  let mock = mock("POST", "/time_entries")
+  let mock = mock("POST", "/workspaces/123456789/time_entries")
     .with_header(
       "Authorization",
       "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
@@ -395,14 +359,14 @@ fn create_time_entry() -> anyhow::Result<()> {
     )?;
 
     assert_eq!(
-      created_time_entry.data.start,
+      created_time_entry.start,
       DateTime::<Local>::from_str("2021-11-21T23:58:09+01:00")?
     );
-    assert_eq!(created_time_entry.data.tags, vec!["aa", "bb"]);
     assert_eq!(
-      created_time_entry.data.description,
-      Some("Wurst".to_string())
+      created_time_entry.tags,
+      Some(vec!["aa".to_string(), "bb".to_string()])
     );
+    assert_eq!(created_time_entry.description, Some("Wurst".to_string()));
   }
 
   mock.assert();
@@ -414,24 +378,21 @@ fn create_time_entry() -> anyhow::Result<()> {
 fn create_client() -> anyhow::Result<()> {
   let request_body = json!(
     {
-      "client": {
-        "name": "fkbr.org",
-        "wid": 123456789
-      }
+      "active": true,
+      "name": "fkbr.org",
+      "wid": 123456789
     }
   );
 
   let response_body = json!(
     {
-      "data": {
-        "id": 1234567890,
-        "wid": 123456789,
-        "name": "fkbr.org"
-      }
+      "id": 1234567890,
+      "wid": 123456789,
+      "name": "fkbr.org"
     }
   );
 
-  let mock = mock("POST", "/clients")
+  let mock = mock("POST", "/workspaces/123456789/clients")
     .with_header(
       "Authorization",
       "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
@@ -448,7 +409,7 @@ fn create_client() -> anyhow::Result<()> {
 
     let created_client = client.create_client("fkbr.org", 123456789)?;
 
-    assert_eq!(created_client.data.name, "fkbr.org");
+    assert_eq!(created_client.name, "fkbr.org");
   }
 
   mock.assert();
@@ -460,32 +421,32 @@ fn create_client() -> anyhow::Result<()> {
 fn test_start_time_entry() -> anyhow::Result<()> {
   let request_body = json!(
     {
-      "time_entry": {
-        "description": "fkbr",
-        "tags": ["a", "b"],
-        "pid": 123,
-        "created_with": CREATED_WITH,
-        "billable": false,
-      }
+      "at":"2021-11-21T23:58:09+01:00",
+      "description": "fkbr",
+      "tags": ["a", "b"],
+      "pid": 123,
+      "start": "2021-11-21T23:58:09+01:00",
+      "duration": -1664810659,
+      "created_with": CREATED_WITH,
+      "billable": false,
+      "wid": 123456
     }
   );
 
   let response_body = json!(
     {
-      "data": {
-        "id": 123456789,
-        "pid": 123,
-        "wid": 123456,
-        "billable": false,
-        "start": "2013-03-05T07:58:58.000Z",
-        "duration": -1362470338,
-        "description": "fkbr",
-        "tags": ["a", "b"]
-      }
+      "id": 123456789,
+      "pid": 123,
+      "wid": 123456,
+      "billable": false,
+      "start": "2013-03-05T07:58:58.000Z",
+      "duration": -1362470338,
+      "description": "fkbr",
+      "tags": ["a", "b"]
     }
   );
 
-  let mock = mock("POST", "/time_entries/start")
+  let mock = mock("POST", "/time_entries")
     .with_header(
       "Authorization",
       "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
@@ -501,13 +462,15 @@ fn test_start_time_entry() -> anyhow::Result<()> {
       TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
 
     let started_time_entry = client.start_time_entry(
+      DateTime::<Local>::from_str("2021-11-21T23:58:09+01:00")?,
+      123456,
       &Some("fkbr".to_string()),
       &Some(vec!["a".to_string(), "b".to_string()]),
       123,
       true,
     )?;
 
-    assert_eq!(started_time_entry.data.id, 123456789);
+    assert_eq!(started_time_entry.id, 123456789);
   }
 
   mock.assert();
@@ -517,39 +480,25 @@ fn test_start_time_entry() -> anyhow::Result<()> {
 
 #[test]
 fn test_stop_time_entry() -> anyhow::Result<()> {
-  let request_body = json!(
-    {
-      "time_entry": {
-        "description": "fkbr",
-        "tags": ["a", "b"],
-        "pid": 123,
-        "created_with": CREATED_WITH,
-      }
-    }
-  );
-
   let response_body = json!(
     {
-      "data": {
-        "id": 123456789,
-        "pid": 123,
-        "wid": 123456,
-        "billable": false,
-        "start": "2013-03-05T07:58:58.000Z",
-        "duration": 60,
-        "description": "fkbr",
-        "tags": ["a", "b"]
-      }
+      "id": 123,
+      "pid": 123,
+      "wid": 456,
+      "billable": false,
+      "start": "2013-03-05T07:58:58.000Z",
+      "duration": 60,
+      "description": "fkbr",
+      "tags": ["a", "b"]
     }
   );
 
-  let mock = mock("PUT", "/time_entries/456/stop")
+  let mock = mock("PATCH", "/workspaces/456/time_entries/123/stop")
     .with_header(
       "Authorization",
       "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
     )
     .with_status(200)
-    .match_body(Matcher::Json(request_body))
     .with_body(response_body.to_string())
     .expect(1)
     .create();
@@ -558,14 +507,9 @@ fn test_stop_time_entry() -> anyhow::Result<()> {
     let client =
       TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
 
-    let started_time_entry = client.stop_time_entry(
-      456,
-      &Some("fkbr".to_string()),
-      &Some(vec!["a".to_string(), "b".to_string()]),
-      123,
-    )?;
+    let started_time_entry = client.stop_time_entry(456, 123)?;
 
-    assert_eq!(started_time_entry.data.id, 123456789);
+    assert_eq!(started_time_entry.id, 123);
   }
 
   mock.assert();
@@ -591,47 +535,6 @@ fn test_delete_time_entry() -> anyhow::Result<()> {
     let deleted_time_entry = client.delete_time_entry(456);
 
     assert_eq!(deleted_time_entry.is_ok(), true);
-  }
-
-  mock.assert();
-
-  Ok(())
-}
-
-#[test]
-fn test_time_entry_details() -> anyhow::Result<()> {
-  let response_body = json!(
-    {
-      "data": {
-        "id": 456,
-        "pid": 123,
-        "wid": 123456,
-        "billable": false,
-        "start": "2013-03-05T07:58:58.000Z",
-        "duration": 200,
-        "description": "fkbr",
-        "tags": ["a", "b"]
-      }
-    }
-  );
-
-  let mock = mock("GET", "/time_entries/456")
-    .with_header(
-      "Authorization",
-      "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
-    )
-    .with_body(response_body.to_string())
-    .with_status(200)
-    .expect(1)
-    .create();
-
-  {
-    let client =
-      TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
-
-    let time_entry_details = client.time_entry_details(456)?;
-
-    assert_eq!(time_entry_details.data.id, 456);
   }
 
   mock.assert();

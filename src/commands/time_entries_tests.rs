@@ -196,37 +196,33 @@ fn test_create_workday_with_pause_2_hours() -> anyhow::Result<()> {
 
   let request_body = json!(
     {
-      "time_entry": {
-        "description": "fkbr",
-        "wid": 1234567,
-        "duration": 7200,
-        "start": "2021-11-21T23:58:09+01:00",
-        "tags": null,
-        "pid": 123456789,
-        "created_with": CREATED_WITH,
-        "billable": false,
-      }
+      "description": "fkbr",
+      "workspace_id": 1234567,
+      "duration": 7200,
+      "start": "2021-11-21T23:58:09+01:00",
+      "tags": null,
+      "project_id": 123456789,
+      "created_with": CREATED_WITH,
+      "billable": false,
     }
   );
 
   let response_body = json!(
     {
-      "data": {
-        "id": 1234567890,
-        "wid": 1234567,
-        "pid": 123456789,
-        "billable": false,
-        "start": "2021-11-21T23:58:09+01:00",
-        "duration": 200,
-        "description": "fkbr",
-        "duronly": false,
-        "at": "2021-11-21T23:58:09+01:00",
-        "uid": 123456789
-      }
+      "id": 1234567890,
+      "wid": 1234567,
+      "pid": 123456789,
+      "billable": false,
+      "start": "2021-11-21T23:58:09+01:00",
+      "duration": 200,
+      "description": "fkbr",
+      "duronly": false,
+      "at": "2021-11-21T23:58:09+01:00",
+      "uid": 123456789
     }
   );
 
-  let time_entry_create_mock = mock("POST", "/time_entries")
+  let time_entry_create_mock = mock("POST", "/workspaces/1234567/time_entries")
     .with_header(
       "Authorization",
       "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
@@ -238,7 +234,7 @@ fn test_create_workday_with_pause_2_hours() -> anyhow::Result<()> {
     .create();
 
   let list_entries_mock =
-    mock("GET", Matcher::Regex(r"^/time_entries.*$".to_string()))
+    mock("GET", Matcher::Regex(r"^/me/time_entries.*$".to_string()))
       .with_header(
         "Authorization",
         "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
@@ -297,92 +293,86 @@ fn test_create_workday_with_pause_7_hours() -> anyhow::Result<()> {
 
   let first_request_body = json!(
     {
-      "time_entry": {
-        "description": "fkbr",
-        "wid": 1234567,
-        "duration": 12600,
-        "start": "2021-11-21T22:58:09+01:00",
-        "tags": null,
-        "pid": 123456789,
-        "created_with": CREATED_WITH,
-        "billable": true,
-      }
+      "description": "fkbr",
+      "workspace_id": 1234567,
+      "duration": 12600,
+      "start": "2021-11-21T22:58:09+01:00",
+      "tags": null,
+      "project_id": 123456789,
+      "created_with": CREATED_WITH,
+      "billable": true,
     }
   );
 
   let first_response_body = json!(
     {
-      "data": {
-        "id": 1234567890,
-        "wid": 1234567,
-        "pid": 123456789,
-        "billable": true,
-        "start": "2021-11-21T22:58:09+01:00",
-        "duration": 12600,
-        "description": "fkbr",
-        "duronly": false,
-        "at": "2021-11-21T22:58:09+01:00",
-        "uid": 123456789
-      }
+      "id": 1234567890,
+      "wid": 1234567,
+      "pid": 123456789,
+      "billable": true,
+      "start": "2021-11-21T22:58:09+01:00",
+      "duration": 12600,
+      "description": "fkbr",
+      "duronly": false,
+      "at": "2021-11-21T22:58:09+01:00",
+      "uid": 123456789
     }
   );
 
   let second_request_body = json!(
     {
-      "time_entry": {
-        "description": "fkbr",
-        "wid": 1234567,
-        "duration": 12600,
-        "start": "2021-11-22T03:28:09+01:00",
-        "tags": null,
-        "pid": 123456789,
-        "created_with": CREATED_WITH,
-        "billable": true,
-      }
+      "description": "fkbr",
+      "workspace_id": 1234567,
+      "duration": 12600,
+      "start": "2021-11-22T03:28:09+01:00",
+      "tags": null,
+      "project_id": 123456789,
+      "created_with": CREATED_WITH,
+      "billable": true,
     }
   );
 
   let second_response_body = json!(
     {
-      "data": {
-        "id": 1234567890,
-        "wid": 1234567,
-        "pid": 123456789,
-        "billable": true,
-        "start": "2021-11-22T03:28:09+01:00",
-        "duration": 12600,
-        "description": "fkbr",
-        "duronly": false,
-        "at": "2021-11-22T03:28:09+01:00",
-        "uid": 123456789
-      }
+      "id": 1234567890,
+      "wid": 1234567,
+      "pid": 123456789,
+      "billable": true,
+      "start": "2021-11-22T03:28:09+01:00",
+      "duration": 12600,
+      "description": "fkbr",
+      "duronly": false,
+      "at": "2021-11-22T03:28:09+01:00",
+      "uid": 123456789
     }
   );
 
-  let first_time_entry_create_mock = mock("POST", "/time_entries")
-    .with_header(
-      "Authorization",
-      "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
-    )
-    .with_status(200)
-    .with_body(first_response_body.to_string())
-    .match_body(Matcher::Json(first_request_body))
-    .expect(1)
-    .create();
+  let first_time_entry_create_mock =
+    mock("POST", "/workspaces/1234567/time_entries")
+      .with_header(
+        "Authorization",
+        "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+      )
+      .with_status(200)
+      .with_body(first_response_body.to_string())
+      .match_body(Matcher::Json(first_request_body))
+      .expect(1)
+      .create();
 
-  let second_time_entry_create_mock = mock("POST", "/time_entries")
-    .with_header(
-      "Authorization",
-      "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
-    )
-    .with_status(200)
-    .with_body(second_response_body.to_string())
-    .match_body(Matcher::Json(second_request_body))
-    .expect(1)
-    .create();
+  let second_time_entry_create_mock =
+    mock("POST", "/workspaces/1234567/time_entries")
+      .with_header(
+        "Authorization",
+        "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+      )
+      .with_status(200)
+      .with_body(second_response_body.to_string())
+      .match_body(Matcher::Json(second_request_body))
+      .expect(1)
+      .create();
 
   let list_entries_mock =
-    mock("GET", Matcher::Regex(r"^/time_entries.*$".to_string()))
+    mock("GET", Matcher::Regex(r"^/me/time_entries.*$".to_string()))
       .with_header(
         "Authorization",
         "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
@@ -422,38 +412,7 @@ fn test_create_workday_with_pause_7_hours() -> anyhow::Result<()> {
 fn me() -> Value {
   json!(
     {
-      "since": 1234567890,
-      "data": {
-        "id": 1234567,
-        "api_token": "cb7bf7efa6d652046abd2f7d84ee18c1",
-        "default_wid": 1234567,
-        "email": "ralph.bower@fkbr.org",
-        "fullname": "Ralph Bower",
-        "jquery_timeofday_format": "H:i",
-        "jquery_date_format": "Y-m-d",
-        "timeofday_format": "H:mm",
-        "date_format": "YYYY-MM-DD",
-        "store_start_and_stop_time": true,
-        "beginning_of_week": 1,
-        "language": "en_US",
-        "image_url": "https://assets.track.toggl.com/images/profile.png",
-        "sidebar_piechart": true,
-        "at": "2021-11-16T08:45:25+00:00",
-        "created_at": "2021-11-16T08:41:05+00:00",
-        "retention": 9,
-        "record_timeline": false,
-        "render_timeline": false,
-        "timeline_enabled": false,
-        "timeline_experiment": false,
-        "should_upgrade": false,
-        "timezone": "Europe/Berlin",
-        "openid_enabled": false,
-        "send_product_emails": true,
-        "send_weekly_report": true,
-        "send_timer_notifications": true,
-        "invitation": {},
-        "duration_format": "improved"
-      }
+      "default_workspace_id": 1234567,
     }
   )
 }

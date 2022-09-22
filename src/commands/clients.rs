@@ -14,12 +14,13 @@ pub fn create(
 ) -> anyhow::Result<()> {
   let me = client.get_me()?;
 
-  let data = client.create_client(&create_client.name, me.data.default_wid)?;
+  let data =
+    client.create_client(&create_client.name, me.default_workspace_id)?;
 
   match format {
-    Format::Json => output_values_json(&[data.data]),
-    Format::Raw => output_values_raw(&[data.data]),
-    Format::Table => output_values_table(&[data.data]),
+    Format::Json => output_values_json(&[data]),
+    Format::Raw => output_values_raw(&[data]),
+    Format::Table => output_values_table(&[data]),
   }
 
   Ok(())
@@ -27,12 +28,17 @@ pub fn create(
 
 pub fn list(format: &Format, client: &TogglClient) -> anyhow::Result<()> {
   let me = client.get_me()?;
-  let clients = client.get_workspace_clients(me.data.default_wid)?;
 
-  match format {
-    Format::Json => output_values_json(&clients),
-    Format::Raw => output_values_raw(&clients),
-    Format::Table => output_values_table(&clients),
+  if let Ok(Some(clients)) =
+    client.get_workspace_clients(me.default_workspace_id)
+  {
+    match format {
+      Format::Json => output_values_json(&clients),
+      Format::Raw => output_values_raw(&clients),
+      Format::Table => output_values_table(&clients),
+    }
+  } else {
+    println!("No entries found!");
   }
 
   Ok(())

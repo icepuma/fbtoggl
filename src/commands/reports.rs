@@ -25,7 +25,7 @@ pub fn detailed(
 
   let mut time_entries = vec![];
 
-  let details = report_client.details(me.data.default_wid, range, 1)?;
+  let details = report_client.details(me.default_workspace_id, range, 1)?;
 
   for time_entry in details.data {
     time_entries.push(time_entry);
@@ -35,7 +35,8 @@ pub fn detailed(
   let pages = (total_count as f64 / 50.0).ceil() as u64;
 
   for page in 2..=pages {
-    let details = report_client.details(me.data.default_wid, range, page)?;
+    let details =
+      report_client.details(me.default_workspace_id, range, page)?;
 
     for time_entry in details.data {
       time_entries.push(time_entry);

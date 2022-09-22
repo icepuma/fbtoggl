@@ -1,11 +1,9 @@
 use crate::config::read_settings;
 use crate::model::Client;
-use crate::model::DataWith;
+use crate::model::Me;
 use crate::model::Project;
 use crate::model::Range;
-use crate::model::SinceWith;
 use crate::model::TimeEntry;
-use crate::model::UserData;
 use crate::model::Workspace;
 use anyhow::anyhow;
 use chrono::DateTime;
@@ -36,7 +34,7 @@ pub fn init_client() -> anyhow::Result<TogglClient> {
 impl TogglClient {
   pub fn new(api_token: String) -> anyhow::Result<TogglClient> {
     #[cfg(not(test))]
-    let base_url = "https://api.track.toggl.com/api/v8/".parse()?;
+    let base_url = "https://api.track.toggl.com/api/v9/".parse()?;
 
     #[cfg(test)]
     let base_url = mockito::server_url().parse()?;
@@ -81,16 +79,6 @@ impl TogglClient {
     self.empty_response(response)
   }
 
-  fn empty_request_with_body<D: DeserializeOwned>(
-    &self,
-    method: Method,
-    uri: &str,
-  ) -> anyhow::Result<D> {
-    let response = self.base_request(method, uri)?.send()?;
-
-    self.response(response)
-  }
-
   fn request_with_body<D: DeserializeOwned, S: Serialize>(
     &self,
     method: Method,
@@ -108,25 +96,28 @@ impl TogglClient {
   ) -> anyhow::Result<D> {
     match response.status() {
       StatusCode::OK | StatusCode::CREATED => Ok(response.json()?),
-      status => Err(anyhow!("{}", status)),
+      status => match response.text() {
+        Ok(text) => Err(anyhow!("{} - {}", status, text)),
+        Err(_) => Err(anyhow!("{}", status)),
+      },
     }
   }
 
   fn empty_response(&self, response: blocking::Response) -> anyhow::Result<()> {
     match response.status() {
       StatusCode::OK | StatusCode::CREATED => Ok(()),
-      status => Err(anyhow!("{}", status)),
+      status => match response.text() {
+        Ok(text) => Err(anyhow!("{} - {}", status, text)),
+        Err(_) => Err(anyhow!("{}", status)),
+      },
     }
   }
 
   pub fn get_workspace_clients(
     &self,
     workspace_id: u64,
-  ) -> anyhow::Result<Vec<Client>> {
-    self.request::<Vec<Client>>(
-      Method::GET,
-      &format!("workspaces/{}/clients", workspace_id),
-    )
+  ) -> anyhow::Result<Option<Vec<Client>>> {
+    self.request(Method::GET, &format!("workspaces/{}/clients", workspace_id))
   }
 
   pub fn get_time_entries(
@@ -134,11 +125,11 @@ impl TogglClient {
     range: &Range,
   ) -> anyhow::Result<Vec<TimeEntry>> {
     let (start, end) = range.as_range();
-    let start_date = start.format("%Y-%m-%dT%H:%M:%S%:z").to_string();
-    let end_date = end.format("%Y-%m-%dT%H:%M:%S%:z").to_string();
+    let start_date = start.format("%Y-%m-%d").to_string();
+    let end_date = end.format("%Y-%m-%d").to_string();
 
     let uri = format!(
-      "time_entries?start_date={}&end_date={}",
+      "me/time_entries?start_date={}&end_date={}",
       urlencoding::encode(&start_date),
       urlencoding::encode(&end_date),
     );
@@ -150,8 +141,8 @@ impl TogglClient {
     self.request::<Vec<Workspace>>(Method::GET, "workspaces")
   }
 
-  pub fn get_me(&self) -> anyhow::Result<SinceWith<UserData>> {
-    self.request::<SinceWith<UserData>>(Method::GET, "me")
+  pub fn get_me(&self) -> anyhow::Result<Me> {
+    self.request::<Me>(Method::GET, "me")
   }
 
   pub fn get_workspace_projects(
@@ -174,97 +165,85 @@ impl TogglClient {
     start: DateTime<Local>,
     project_id: u64,
     non_billable: bool,
-  ) -> anyhow::Result<DataWith<TimeEntry>> {
+  ) -> anyhow::Result<TimeEntry> {
     let billable = !non_billable;
 
     let body = json!({
-        "time_entry": {
-            "description": description,
-            "wid": workspace_id,
-            "tags": tags,
-            "duration": duration.num_seconds(),
-            "start": start,
-            "pid": project_id,
-            "created_with": CREATED_WITH,
-            "billable": billable,
-        }
+      "description": description,
+      "workspace_id": workspace_id,
+      "tags": tags,
+      "duration": duration.num_seconds(),
+      "start": start,
+      "project_id": project_id,
+      "created_with": CREATED_WITH,
+      "billable": billable,
     });
 
-    self.request_with_body(Method::POST, "time_entries", body)
+    let uri = format!("workspaces/{}/time_entries", workspace_id);
+
+    self.request_with_body(Method::POST, &uri, body)
   }
 
   pub fn create_client(
     &self,
     name: &str,
     workspace_id: u64,
-  ) -> anyhow::Result<DataWith<Client>> {
+  ) -> anyhow::Result<Client> {
     let body = json!({
-        "client": {
-            "name": name,
-            "wid": workspace_id
-        }
+      "active": true,
+      "name": name,
+      "wid": workspace_id,
     });
 
-    self.request_with_body(Method::POST, "clients", body)
+    let uri = format!("workspaces/{}/clients", workspace_id);
+
+    self.request_with_body(Method::POST, &uri, body)
   }
 
   pub fn start_time_entry(
     &self,
+    start: DateTime<Local>,
+    workspace_id: u64,
     description: &Option<String>,
     tags: &Option<Vec<String>>,
     project_id: u64,
     non_billable: bool,
-  ) -> anyhow::Result<DataWith<TimeEntry>> {
+  ) -> anyhow::Result<TimeEntry> {
     let billable = !non_billable;
 
     let body = json!({
-      "time_entry": {
-        "description": description,
-        "tags": tags,
-        "pid": project_id,
-        "created_with": CREATED_WITH,
-        "billable": billable,
-      }
+      "at": start,
+      "billable": billable,
+      "created_with": CREATED_WITH,
+      "description": description,
+      "duration": -1664810659,
+      "pid": project_id,
+      "start": start,
+      "tags": tags,
+      "wid": workspace_id
     });
 
-    self.request_with_body(Method::POST, "time_entries/start", body)
+    let uri = "time_entries".to_string();
+
+    self.request_with_body(Method::POST, &uri, body)
   }
 
   pub fn stop_time_entry(
     &self,
+    workspace_id: u64,
     time_entry_id: u64,
-    description: &Option<String>,
-    tags: &Option<Vec<String>>,
-    project_id: u64,
-  ) -> anyhow::Result<DataWith<TimeEntry>> {
-    let body = json!({
-      "time_entry": {
-        "description": description,
-        "tags": tags,
-        "pid": project_id,
-        "created_with": CREATED_WITH,
-      }
-    });
-
-    self.request_with_body(
-      Method::PUT,
-      &format!("time_entries/{}/stop", time_entry_id),
-      body,
+  ) -> anyhow::Result<TimeEntry> {
+    self.request(
+      Method::PATCH,
+      &format!(
+        "workspaces/{}/time_entries/{}/stop",
+        workspace_id, time_entry_id
+      ),
     )
   }
 
   pub fn delete_time_entry(&self, time_entry_id: u64) -> anyhow::Result<()> {
     self
       .empty_request(Method::DELETE, &format!("time_entries/{}", time_entry_id))
-  }
-
-  pub fn time_entry_details(
-    &self,
-    time_entry_id: u64,
-  ) -> anyhow::Result<DataWith<TimeEntry>> {
-    self.empty_request_with_body(
-      Method::GET,
-      &format!("time_entries/{}", time_entry_id),
-    )
   }
 }

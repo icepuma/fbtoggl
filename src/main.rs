@@ -58,10 +58,6 @@ fn main() -> anyhow::Result<()> {
         let client = init_client()?;
         commands::time_entries::delete(&format, &time_entry, &client)?
       }
-      TimeEntries::Details(time_entry) => {
-        let client = init_client()?;
-        commands::time_entries::details(&format, &time_entry, &client)?
-      }
     },
 
     SubCommand::Clients(action) => match action {

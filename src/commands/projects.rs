@@ -10,12 +10,16 @@ use crate::{
 pub fn list(format: &Format, client: &TogglClient) -> anyhow::Result<()> {
   let me = client.get_me()?;
   let workspace_projects =
-    client.get_workspace_projects(me.data.default_wid)?;
+    client.get_workspace_projects(me.default_workspace_id)?;
 
-  match format {
-    Format::Json => output_values_json(&workspace_projects),
-    Format::Raw => output_values_raw(&workspace_projects),
-    Format::Table => output_values_table(&workspace_projects),
+  if workspace_projects.is_empty() {
+    println!("No entries found!");
+  } else {
+    match format {
+      Format::Json => output_values_json(&workspace_projects),
+      Format::Raw => output_values_raw(&workspace_projects),
+      Format::Table => output_values_table(&workspace_projects),
+    }
   }
 
   Ok(())

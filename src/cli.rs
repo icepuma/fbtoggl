@@ -90,9 +90,6 @@ pub enum TimeEntries {
 
   /// Delete time entry
   Delete(DeleteTimeEntry),
-
-  /// Time entry details
-  Details(TimeEntryDetails),
 }
 
 #[derive(Parser, Debug)]
@@ -194,18 +191,6 @@ pub struct StopTimeEntry {
   /// Id of the time entry
   #[clap(long, value_parser)]
   pub id: u64,
-
-  /// Name of the project
-  #[clap(long, value_parser)]
-  pub project: String,
-
-  /// Description of the timer
-  #[clap(long, value_parser)]
-  pub description: Option<String>,
-
-  /// Tags
-  #[clap(long, value_parser)]
-  pub tags: Option<Vec<String>>,
 }
 
 #[derive(Parser, Debug)]
