@@ -206,25 +206,10 @@ pub struct Currency {
 #[derive(Deserialize, Serialize, Debug)]
 pub struct ReportTimeEntry {
   pub id: u64,
-  pub pid: u64,
-  pub project: String,
-  pub client: String,
-  pub tid: Option<u64>,
-  pub task: Option<String>,
-  pub uid: u64,
   pub user: String,
-  pub description: String,
   pub start: DateTime<Utc>,
   pub end: DateTime<Utc>,
   pub dur: u64,
-  pub updated: DateTime<Utc>,
-  pub use_stop: bool,
-  pub is_billable: bool,
-  pub billable: f64,
-  pub cur: String,
-
-  #[serde(default)]
-  pub tags: Vec<String>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
