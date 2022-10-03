@@ -1,22 +1,22 @@
 use crate::model::Range;
 use chrono::{DateTime, Duration, Local};
-use clap::{ArgEnum, Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use jackdauer::duration;
 use serde::Serialize;
 
 pub const APP_NAME: &str = "fbtoggl";
 
 #[derive(Parser)]
-#[clap(author, about, version)]
+#[command(author, about, version)]
 pub struct Options {
-  #[clap(long, arg_enum, value_parser, default_value = "raw")]
+  #[arg(long, value_enum, default_value_t = Format::Raw)]
   pub format: Format,
 
   #[clap(subcommand)]
   pub subcommand: SubCommand,
 }
 
-#[derive(Debug, Clone, ArgEnum)]
+#[derive(Debug, Clone, ValueEnum)]
 pub enum Format {
   Json,
   Raw,
@@ -28,24 +28,19 @@ pub enum SubCommand {
   /// Initialize settings
   Init,
 
-  /// Workspaces
-  #[clap(subcommand)]
+  #[command(subcommand, about = "Workspaces")]
   Workspaces(Workspaces),
 
-  /// Projects (default workspace)
-  #[clap(subcommand)]
+  #[command(subcommand, about = "Projects (default workspace)")]
   Projects(Projects),
 
-  /// Time entries
-  #[clap(subcommand)]
+  #[command(subcommand, about = "Time entries")]
   TimeEntries(TimeEntries),
 
-  /// Clients (default workspace)
-  #[clap(subcommand)]
+  #[command(subcommand, about = "Clients (default workspace)")]
   Clients(Clients),
 
-  /// Reports
-  #[clap(subcommand)]
+  #[command(subcommand, about = "Reports")]
   Reports(Reports),
 }
 
@@ -58,7 +53,7 @@ pub enum Reports {
 #[derive(Parser, Debug)]
 pub struct Detailed {
   /// Start ('today', 'yesterday', 'this-week', 'last-week', 'this-month', 'last-month', ISO 8601 date '2021-11-01'), ISO 8601 date range '2021-11-01|2021-11-02')
-  #[clap(long, default_value = "today", value_parser)]
+  #[arg(long, default_value = "today")]
   pub range: Range,
 }
 
@@ -95,18 +90,18 @@ pub enum TimeEntries {
 #[derive(Parser, Debug)]
 pub struct ListTimeEntries {
   /// Start ('today', 'yesterday', 'this-week', 'last-week', 'this-month', 'last-month', ISO 8601 date '2021-11-01'), ISO 8601 date range '2021-11-01|2021-11-02')
-  #[clap(long, default_value = "today", value_parser)]
+  #[arg(long, default_value = "today")]
   pub range: Range,
 
   /// Show days which have no entry (monday, tuesday, wednesday, thursday and friday only)
-  #[clap(long, value_parser)]
+  #[arg(long)]
   pub missing: bool,
 }
 
 #[derive(Parser, Debug)]
 pub struct CreateClient {
   /// Name of the client
-  #[clap(long, value_parser)]
+  #[arg(long)]
   pub name: String,
 }
 
@@ -123,19 +118,19 @@ fn parse_time(time_to_parse: &str) -> anyhow::Result<DateTime<Local>> {
 #[derive(Parser, Debug)]
 pub struct CreateTimeEntry {
   /// Name of the project
-  #[clap(long, value_parser)]
+  #[arg(long)]
   pub project: String,
 
   /// Description of the timer
-  #[clap(long, value_parser)]
+  #[arg(long)]
   pub description: Option<String>,
 
   /// Tags
-  #[clap(long, value_parser)]
+  #[arg(long)]
   pub tags: Option<Vec<String>>,
 
   /// Duration ('1 hour', '10 minutes', '1 hour 12 minutes')
-  #[clap(
+  #[arg(
     long,
     value_parser = parse_duration,
     conflicts_with = "end"
@@ -143,11 +138,11 @@ pub struct CreateTimeEntry {
   pub duration: Option<Duration>,
 
   /// Lunch break (if set, adds a lunch break of 1 hour)
-  #[clap(long, value_parser)]
+  #[arg(long)]
   pub lunch_break: bool,
 
   /// Start (e.g. 'now', 'today at 6am', 'yesterday at 16:30' '2021-11-30T06:00', '2 hours ago', 'yesterday at 6am') - All possible formats https://github.com/PicoJr/htp/blob/HEAD/src/time.pest
-  #[clap(
+  #[arg(
     long,
     default_value = "now",
     value_parser = parse_time,
@@ -155,7 +150,7 @@ pub struct CreateTimeEntry {
   pub start: DateTime<Local>,
 
   /// End (e.g. 'now', 'today at 6am', 'yesterday at 16:30' '2021-11-30T06:00', '2 hours ago', 'yesterday at 6am') - All possible formats https://github.com/PicoJr/htp/blob/HEAD/src/time.pest
-  #[clap(
+  #[arg(
     long,
     value_parser = parse_time,
     conflicts_with = "duration"
@@ -163,47 +158,47 @@ pub struct CreateTimeEntry {
   pub end: Option<DateTime<Local>>,
 
   /// Time entry is non-billable
-  #[clap(long, value_parser)]
+  #[arg(long)]
   pub non_billable: bool,
 }
 
 #[derive(Parser, Debug)]
 pub struct StartTimeEntry {
   /// Name of the project
-  #[clap(long, value_parser)]
+  #[arg(long)]
   pub project: String,
 
   /// Description of the timer
-  #[clap(long, value_parser)]
+  #[arg(long)]
   pub description: Option<String>,
 
   /// Tags
-  #[clap(long, value_parser)]
+  #[arg(long)]
   pub tags: Option<Vec<String>>,
 
   /// Time entry is non-billable
-  #[clap(long, value_parser)]
+  #[arg(long)]
   pub non_billable: bool,
 }
 
 #[derive(Parser, Debug)]
 pub struct StopTimeEntry {
   /// Id of the time entry
-  #[clap(long, value_parser)]
+  #[arg(long)]
   pub id: u64,
 }
 
 #[derive(Parser, Debug)]
 pub struct DeleteTimeEntry {
   /// Id of the time entry
-  #[clap(long, value_parser)]
+  #[arg(long)]
   pub id: u64,
 }
 
 #[derive(Parser, Debug)]
 pub struct TimeEntryDetails {
   /// Id of the time entry
-  #[clap(long, value_parser)]
+  #[arg(long)]
   pub id: u64,
 }
 

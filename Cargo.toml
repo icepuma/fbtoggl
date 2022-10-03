@@ -10,7 +10,7 @@ readme = "README.md"
 license = "WTFPL"
 
 [dependencies]
-clap = { version = "3", features = [
+clap = { version = "4", features = [
     "deprecated",
     "derive",
     "suggestions",
