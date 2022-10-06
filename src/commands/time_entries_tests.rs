@@ -259,7 +259,12 @@ fn test_create_workday_with_pause_2_hours() -> anyhow::Result<()> {
     let client =
       TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
 
-    create(&crate::cli::Format::Json, &workday_with_pause, &client)?;
+    create(
+      false,
+      &crate::cli::Format::Json,
+      &workday_with_pause,
+      &client,
+    )?;
   }
 
   me_mock.assert();
@@ -397,7 +402,12 @@ fn test_create_workday_with_pause_7_hours() -> anyhow::Result<()> {
     let client =
       TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
 
-    create(&crate::cli::Format::Json, &workday_with_pause, &client)?;
+    create(
+      false,
+      &crate::cli::Format::Json,
+      &workday_with_pause,
+      &client,
+    )?;
   }
 
   me_mock.assert();

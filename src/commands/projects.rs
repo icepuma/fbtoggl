@@ -7,10 +7,14 @@ use crate::{
   model::Project,
 };
 
-pub fn list(format: &Format, client: &TogglClient) -> anyhow::Result<()> {
-  let me = client.get_me()?;
+pub fn list(
+  debug: bool,
+  format: &Format,
+  client: &TogglClient,
+) -> anyhow::Result<()> {
+  let me = client.get_me(debug)?;
   let workspace_projects =
-    client.get_workspace_projects(me.default_workspace_id)?;
+    client.get_workspace_projects(debug, me.default_workspace_id)?;
 
   if workspace_projects.is_empty() {
     println!("No entries found!");

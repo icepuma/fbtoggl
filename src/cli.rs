@@ -12,6 +12,10 @@ pub struct Options {
   #[arg(long, value_enum, default_value_t = Format::Raw)]
   pub format: Format,
 
+  /// Show debug information -> log HTTP requests and responses
+  #[arg(long)]
+  pub debug: bool,
+
   #[clap(subcommand)]
   pub subcommand: SubCommand,
 }

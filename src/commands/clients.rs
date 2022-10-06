@@ -8,14 +8,18 @@ use crate::{
 };
 
 pub fn create(
+  debug: bool,
   format: &Format,
   create_client: &CreateClient,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
-  let me = client.get_me()?;
+  let me = client.get_me(debug)?;
 
-  let data =
-    client.create_client(&create_client.name, me.default_workspace_id)?;
+  let data = client.create_client(
+    debug,
+    &create_client.name,
+    me.default_workspace_id,
+  )?;
 
   match format {
     Format::Json => output_values_json(&[data]),
@@ -26,11 +30,15 @@ pub fn create(
   Ok(())
 }
 
-pub fn list(format: &Format, client: &TogglClient) -> anyhow::Result<()> {
-  let me = client.get_me()?;
+pub fn list(
+  debug: bool,
+  format: &Format,
+  client: &TogglClient,
+) -> anyhow::Result<()> {
+  let me = client.get_me(debug)?;
 
   if let Ok(Some(clients)) =
-    client.get_workspace_clients(me.default_workspace_id)
+    client.get_workspace_clients(debug, me.default_workspace_id)
   {
     match format {
       Format::Json => output_values_json(&clients),

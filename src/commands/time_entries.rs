@@ -28,12 +28,13 @@ struct OutputEntry {
 }
 
 pub fn list(
+  debug: bool,
   format: &Format,
   range: &Range,
   missing: bool,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
-  let mut time_entries = client.get_time_entries(range)?;
+  let mut time_entries = client.get_time_entries(debug, range)?;
 
   if missing {
     let missing_datetimes = if time_entries.is_empty() {
@@ -70,14 +71,14 @@ pub fn list(
       return Ok(());
     }
 
-    let workspaces = client.get_workspaces()?;
-    let me = client.get_me()?;
+    let workspaces = client.get_workspaces(debug)?;
+    let me = client.get_me(debug)?;
 
     let workspace_id = me.default_workspace_id;
 
-    let projects = client.get_workspace_projects(workspace_id)?;
+    let projects = client.get_workspace_projects(debug, workspace_id)?;
     let clients = client
-      .get_workspace_clients(workspace_id)?
+      .get_workspace_clients(debug, workspace_id)?
       .unwrap_or_default();
 
     let output_entries = collect_output_entries(
@@ -157,13 +158,14 @@ fn collect_output_entries(
 }
 
 pub fn create(
+  debug: bool,
   format: &Format,
   time_entry: &CreateTimeEntry,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
-  let me = client.get_me()?;
+  let me = client.get_me(debug)?;
   let workspace_id = me.default_workspace_id;
-  let projects = client.get_workspace_projects(workspace_id)?;
+  let projects = client.get_workspace_projects(debug, workspace_id)?;
 
   let project = projects
     .iter()
@@ -179,6 +181,7 @@ pub fn create(
     let duration = duration.div(2);
 
     client.create_time_entry(
+      debug,
       &time_entry.description,
       workspace_id,
       &time_entry.tags,
@@ -191,6 +194,7 @@ pub fn create(
     let new_start = start + launch_break() + duration;
 
     client.create_time_entry(
+      debug,
       &time_entry.description,
       workspace_id,
       &time_entry.tags,
@@ -201,6 +205,7 @@ pub fn create(
     )?;
   } else {
     client.create_time_entry(
+      debug,
       &time_entry.description,
       workspace_id,
       &time_entry.tags,
@@ -211,7 +216,7 @@ pub fn create(
     )?;
   }
 
-  list(format, &Range::Today, false, client)?;
+  list(debug, format, &Range::Today, false, client)?;
 
   Ok(())
 }
@@ -261,13 +266,14 @@ fn calculate_duration_with_lunch_break(
 }
 
 pub fn start(
+  debug: bool,
   format: &Format,
   time_entry: &StartTimeEntry,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
-  let me = client.get_me()?;
+  let me = client.get_me(debug)?;
   let workspace_id = me.default_workspace_id;
-  let projects = client.get_workspace_projects(workspace_id)?;
+  let projects = client.get_workspace_projects(debug, workspace_id)?;
 
   let project = projects
     .iter()
@@ -277,6 +283,7 @@ pub fn start(
     })?;
 
   let started_time_entry = client.start_time_entry(
+    debug,
     chrono::Local::now(),
     workspace_id,
     &time_entry.description,
@@ -295,28 +302,30 @@ pub fn start(
 }
 
 pub fn stop(
+  debug: bool,
   format: &Format,
   time_entry: &StopTimeEntry,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
-  let me = client.get_me()?;
+  let me = client.get_me(debug)?;
   let workspace_id = me.default_workspace_id;
 
-  client.stop_time_entry(workspace_id, time_entry.id)?;
+  client.stop_time_entry(debug, workspace_id, time_entry.id)?;
 
-  list(format, &Range::Today, false, client)?;
+  list(debug, format, &Range::Today, false, client)?;
 
   Ok(())
 }
 
 pub fn delete(
+  debug: bool,
   format: &Format,
   time_entry: &DeleteTimeEntry,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
-  client.delete_time_entry(time_entry.id)?;
+  client.delete_time_entry(debug, time_entry.id)?;
 
-  list(format, &Range::Today, false, client)?;
+  list(debug, format, &Range::Today, false, client)?;
 
   Ok(())
 }

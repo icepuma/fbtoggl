@@ -7,8 +7,12 @@ use crate::{
   model::Workspace,
 };
 
-pub fn list(format: &Format, client: &TogglClient) -> anyhow::Result<()> {
-  let workspaces = client.get_workspaces()?;
+pub fn list(
+  debug: bool,
+  format: &Format,
+  client: &TogglClient,
+) -> anyhow::Result<()> {
+  let workspaces = client.get_workspaces(debug)?;
 
   match format {
     Format::Json => output_values_json(&workspaces),

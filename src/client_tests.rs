@@ -43,7 +43,7 @@ fn get_me() -> anyhow::Result<()> {
   {
     let client =
       TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
-    let me = client.get_me()?;
+    let me = client.get_me(false)?;
 
     assert_eq!(me.default_workspace_id, 1234567);
   }
@@ -94,7 +94,7 @@ fn get_workspaces() -> anyhow::Result<()> {
     let client =
       TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
 
-    let workspaces = client.get_workspaces()?;
+    let workspaces = client.get_workspaces(false)?;
     let first_workspace = workspaces.first().unwrap();
 
     assert_eq!(first_workspace.id, 1234567);
@@ -139,7 +139,9 @@ fn get_workspace_clients() -> anyhow::Result<()> {
     let client =
       TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
 
-    let clients = client.get_workspace_clients(12345678)?.unwrap_or_default();
+    let clients = client
+      .get_workspace_clients(false, 12345678)?
+      .unwrap_or_default();
     let first_client = clients.get(0).unwrap();
     let second_client = clients.get(1).unwrap();
 
@@ -210,7 +212,7 @@ fn get_workspace_projects() -> anyhow::Result<()> {
     let client =
       TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
 
-    let projects = client.get_workspace_projects(12345678)?;
+    let projects = client.get_workspace_projects(false, 12345678)?;
     let first_project = projects.get(0).unwrap();
     let second_project = projects.get(1).unwrap();
 
@@ -280,8 +282,10 @@ fn get_time_entries() -> anyhow::Result<()> {
     let client =
       TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
 
-    let time_entries = client
-      .get_time_entries(&Range::Date(NaiveDate::from_ymd(2021, 11, 21)))?;
+    let time_entries = client.get_time_entries(
+      false,
+      &Range::Date(NaiveDate::from_ymd(2021, 11, 21)),
+    )?;
     let first_time_entry = time_entries.get(0).unwrap();
     let second_time_entry = time_entries.get(1).unwrap();
 
@@ -349,6 +353,7 @@ fn create_time_entry() -> anyhow::Result<()> {
       TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
 
     let created_time_entry = client.create_time_entry(
+      false,
       &Some("Wurst".to_string()),
       123456789,
       &Some(vec!["aa".to_string(), "bb".to_string()]),
@@ -407,7 +412,7 @@ fn create_client() -> anyhow::Result<()> {
     let client =
       TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
 
-    let created_client = client.create_client("fkbr.org", 123456789)?;
+    let created_client = client.create_client(false, "fkbr.org", 123456789)?;
 
     assert_eq!(created_client.name, "fkbr.org");
   }
@@ -462,6 +467,7 @@ fn test_start_time_entry() -> anyhow::Result<()> {
       TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
 
     let started_time_entry = client.start_time_entry(
+      false,
       DateTime::<Local>::from_str("2021-11-21T23:58:09+01:00")?,
       123456,
       &Some("fkbr".to_string()),
@@ -507,7 +513,7 @@ fn test_stop_time_entry() -> anyhow::Result<()> {
     let client =
       TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
 
-    let started_time_entry = client.stop_time_entry(456, 123)?;
+    let started_time_entry = client.stop_time_entry(false, 456, 123)?;
 
     assert_eq!(started_time_entry.id, 123);
   }
@@ -532,7 +538,7 @@ fn test_delete_time_entry() -> anyhow::Result<()> {
     let client =
       TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
 
-    let deleted_time_entry = client.delete_time_entry(456);
+    let deleted_time_entry = client.delete_time_entry(false, 456);
 
     assert_eq!(deleted_time_entry.is_ok(), true);
   }

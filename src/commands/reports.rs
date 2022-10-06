@@ -5,8 +5,7 @@ use humantime::format_duration;
 use itertools::Itertools;
 
 use crate::{
-  cli::Format, client::TogglClient, model::Range,
-  report_client::TogglReportClient,
+  client::TogglClient, model::Range, report_client::TogglReportClient,
 };
 
 fn formatted_duration(duration: Duration) -> String {
@@ -16,12 +15,12 @@ fn formatted_duration(duration: Duration) -> String {
 }
 
 pub fn detailed(
-  _format: &Format,
+  debug: bool,
   client: &TogglClient,
   range: &Range,
   report_client: &TogglReportClient,
 ) -> anyhow::Result<()> {
-  let me = client.get_me()?;
+  let me = client.get_me(debug)?;
 
   let mut time_entries = vec![];
 
