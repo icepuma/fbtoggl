@@ -1,7 +1,10 @@
+use std::fmt::Debug;
+
 use crate::config::read_settings;
 use crate::model::Range;
 use crate::model::ReportDetails;
 use anyhow::anyhow;
+use colored::Colorize;
 use reqwest::blocking;
 use reqwest::Method;
 use reqwest::StatusCode;
@@ -54,28 +57,58 @@ impl TogglReportClient {
     )
   }
 
-  fn empty_request_with_body<D: DeserializeOwned>(
+  fn empty_request_with_body<D: DeserializeOwned + Debug>(
     &self,
+    debug: bool,
     method: Method,
     uri: &str,
   ) -> anyhow::Result<D> {
-    let response = self.base_request(method, uri)?.send()?;
+    let request = self.base_request(method, uri)?;
 
-    self.response(response)
+    if debug {
+      println!("{}", "Request:".bold().underline());
+      println!("{:?}", request);
+      println!();
+    }
+
+    let response = request.send()?;
+
+    self.response(debug, response)
   }
 
-  fn response<D: DeserializeOwned>(
+  fn response<D: DeserializeOwned + Debug>(
     &self,
+    debug: bool,
     response: blocking::Response,
   ) -> anyhow::Result<D> {
+    if debug {
+      println!("{}", "Response:".bold().underline());
+      println!("{:?}", response);
+      println!();
+    }
+
     match response.status() {
+      StatusCode::OK | StatusCode::CREATED if debug => match response.json() {
+        Ok(json) => {
+          println!("{}", "Received JSON response:".bold().underline());
+          println!("{:?}", json);
+          println!();
+
+          Ok(json)
+        }
+        Err(err) => Err(anyhow!("Failed to deserialize JSON: {}", err)),
+      },
       StatusCode::OK | StatusCode::CREATED => Ok(response.json()?),
-      status => Err(anyhow!("{}", status)),
+      status => match response.text() {
+        Ok(text) => Err(anyhow!("{} - {}", status, text)),
+        Err(_) => Err(anyhow!("{}", status)),
+      },
     }
   }
 
   pub fn details(
     &self,
+    debug: bool,
     workspace_id: u64,
     range: &Range,
     page: u64,
@@ -91,6 +124,6 @@ impl TogglReportClient {
       end.date().format("%Y-%m-%d"),
     );
 
-    self.empty_request_with_body(Method::GET, &uri)
+    self.empty_request_with_body(debug, Method::GET, &uri)
   }
 }
