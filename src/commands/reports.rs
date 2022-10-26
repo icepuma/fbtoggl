@@ -100,8 +100,8 @@ pub fn detailed(
 
       let mut warnings = vec![];
 
-      if hours.num_hours() >= 10 {
-        warnings.push("10 hours or more".red().to_string());
+      if hours.num_hours() > 10 {
+        warnings.push("More than 10 hours".red().to_string());
       }
 
       if let Some(start) = start {
