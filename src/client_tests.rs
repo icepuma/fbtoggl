@@ -267,7 +267,7 @@ fn get_time_entries() -> anyhow::Result<()> {
 
   let mock = mock(
     "GET",
-    "/me/time_entries?start_date=2021-11-21&end_date=2021-11-22",
+    "/me/time_entries?start_date=2021-11-21&end_date=2021-11-23",
   )
   .with_header(
     "Authorization",
