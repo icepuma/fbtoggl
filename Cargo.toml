@@ -19,7 +19,11 @@ clap = { version = "4", features = [
     "unicode",
     "wrap_help",
 ] }
-reqwest = { version = "0", features = ["blocking", "json"] }
+reqwest = { default-features = false, version = "0", features = [
+    "blocking",
+    "json",
+    "rustls-tls",
+] }
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -30,7 +34,6 @@ xdg = "2"
 config = "0"
 toml = "0"
 dialoguer = "0"
-openssl = { version = "0.10", features = ["vendored"] }
 urlencoding = "2"
 jackdauer = "0"
 term-table = "1"
