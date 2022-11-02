@@ -25,28 +25,13 @@ jobs:
       - run: cp ./target/x86_64-unknown-linux-musl/release/fbtoggl fbtoggl
       - run: sha512sum fbtoggl > fbtoggl.sha512sum
       - id: github_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref }}
-          release_name: Release fbtoggl ${{ github.ref }}
+          name: Release fbtoggl ${{ github.ref }}
           body: "No changelog, but [here](https://cataas.com/cat) is a random cat GIF for your amusement!"
           draft: false
           prerelease: false
-      - uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.github_release.outputs.upload_url }}
-          asset_path: ./fbtoggl
-          asset_name: fbtoggl
-          asset_content_type: application/octet-stream
-      - uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.github_release.outputs.upload_url }}
-          asset_path: ./fbtoggl.sha512sum
-          asset_name: fbtoggl.sha512sum
-          asset_content_type: text/plain
+          files: |
+            fbtoggl
+            fbtoggl.sha512sum
