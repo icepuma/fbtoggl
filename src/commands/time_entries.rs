@@ -38,15 +38,15 @@ pub fn list(
 
   if missing {
     let missing_datetimes = if time_entries.is_empty() {
-      range.get_datetimes()
+      range.get_datetimes()?
     } else {
       let mut missing_datetimes = vec![];
 
-      for date in range.get_datetimes() {
+      for date in range.get_datetimes()? {
         if !time_entries
           .iter()
-          .map(|entry| DateTime::<Local>::from(entry.start).date())
-          .any(|x| x == date.date())
+          .map(|entry| DateTime::<Local>::from(entry.start).date_naive())
+          .any(|x| x == date.date_naive())
         {
           missing_datetimes.push(date);
         }
@@ -138,7 +138,7 @@ fn collect_output_entries(
 
     output_entries.push(OutputEntry {
       id: entry.id,
-      date: entry.start.date().naive_local(),
+      date: entry.start.date_naive(),
       duration,
       workspace: maybe_workspace
         .map(|w| w.name.to_owned())
@@ -359,8 +359,8 @@ fn output_time_entry_table(time_entry: &TimeEntry) {
   table.add_row(header);
 
   table.add_row(Row::new(vec![
-    TableCell::new(&time_entry.id),
-    TableCell::new(&time_entry.start),
+    TableCell::new(time_entry.id),
+    TableCell::new(time_entry.start),
     TableCell::new(&time_entry.description.to_owned().unwrap_or_default()),
     TableCell::new(
       &time_entry
@@ -384,7 +384,9 @@ fn output_missing_days_table(missing_datetimes: &[DateTime<Local>]) {
   table.add_row(header);
 
   for missing_datetime in missing_datetimes {
-    table.add_row(Row::new(vec![TableCell::new(&missing_datetime.date())]));
+    table.add_row(Row::new(vec![TableCell::new(
+      missing_datetime.date_naive(),
+    )]));
   }
 
   println!("{}", table.render());
@@ -392,7 +394,7 @@ fn output_missing_days_table(missing_datetimes: &[DateTime<Local>]) {
 
 fn output_missing_days_raw(missing_datetimes: &[DateTime<Local>]) {
   for missing_datetime in missing_datetimes {
-    println!("{}", missing_datetime.date());
+    println!("{}", missing_datetime.date_naive());
   }
 }
 
@@ -490,7 +492,7 @@ fn output_values_table(output_entries: &[OutputEntry]) {
         let entry_row = Row::new(vec![
           TableCell::new(""),
           TableCell::new(duration_text),
-          TableCell::new(&entry.id),
+          TableCell::new(entry.id),
           TableCell::new(&entry.workspace),
           TableCell::new(&entry.project),
           TableCell::new(&entry.client),

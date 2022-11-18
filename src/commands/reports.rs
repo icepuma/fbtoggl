@@ -1,5 +1,5 @@
-use chrono::Timelike;
-use chrono::{Date, DateTime, Duration, Local, Utc};
+use chrono::{DateTime, Duration, Local};
+use chrono::{NaiveDate, Timelike};
 use colored::Colorize;
 use humantime::format_duration;
 use itertools::Itertools;
@@ -67,9 +67,9 @@ pub fn detailed(
 
     let time_entries_by_date = time_entries
       .iter()
-      .into_group_map_by(|time_entry| time_entry.start.date());
+      .into_group_map_by(|time_entry| time_entry.start.date_naive());
 
-    let mut dates = time_entries_by_date.keys().collect::<Vec<&Date<Utc>>>();
+    let mut dates = time_entries_by_date.keys().collect::<Vec<&NaiveDate>>();
     dates.sort();
 
     for date in dates {

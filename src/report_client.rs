@@ -113,15 +113,15 @@ impl TogglReportClient {
     range: &Range,
     page: u64,
   ) -> anyhow::Result<ReportDetails> {
-    let (start, end) = range.as_range();
+    let (start, end) = range.as_range()?;
 
     let uri = format!(
       "details?workspace_id={}&user_agent={}&page={}&since={}&until={}",
       &workspace_id,
       urlencoding::encode(CREATED_WITH),
       &page,
-      start.date().format("%Y-%m-%d"),
-      end.date().format("%Y-%m-%d"),
+      start.naive_local().format("%Y-%m-%d"),
+      end.naive_local().format("%Y-%m-%d"),
     );
 
     self.empty_request_with_body(debug, Method::GET, &uri)

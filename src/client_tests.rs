@@ -284,7 +284,7 @@ fn get_time_entries() -> anyhow::Result<()> {
 
     let time_entries = client.get_time_entries(
       false,
-      &Range::Date(NaiveDate::from_ymd(2021, 11, 21)),
+      &Range::Date(NaiveDate::from_ymd_opt(2021, 11, 21).unwrap()),
     )?;
     let first_time_entry = time_entries.get(0).unwrap();
     let second_time_entry = time_entries.get(1).unwrap();

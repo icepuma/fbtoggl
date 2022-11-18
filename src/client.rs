@@ -183,7 +183,7 @@ impl TogglClient {
     debug: bool,
     range: &Range,
   ) -> anyhow::Result<Vec<TimeEntry>> {
-    let (start, end) = range.as_range();
+    let (start, end) = range.as_range()?;
     let start_date = start.format("%Y-%m-%d").to_string();
 
     // End date is not inclusive, therefore we add one day
