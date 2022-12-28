@@ -9,6 +9,14 @@ repository = "https://github.com/icepuma/fbtoggl"
 readme = "README.md"
 license = "WTFPL"
 
+[[bin]]
+name = "fbtoggl"
+path = "src/main.rs"
+
+[lib]
+name = "fbtoggl"
+path = "src/lib.rs"
+
 [dependencies]
 clap = { version = "4", features = [
     "deprecated",
