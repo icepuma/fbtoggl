@@ -277,13 +277,14 @@ impl TogglClient {
     non_billable: bool,
   ) -> anyhow::Result<TimeEntry> {
     let billable = !non_billable;
+    let duration = -start.timestamp();
 
     let body = json!({
       "at": start,
       "billable": billable,
       "created_with": CREATED_WITH,
       "description": description,
-      "duration": -1664810659,
+      "duration": duration,
       "pid": project_id,
       "start": start,
       "tags": tags,

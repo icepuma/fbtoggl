@@ -431,7 +431,7 @@ fn test_start_time_entry() -> anyhow::Result<()> {
       "tags": ["a", "b"],
       "pid": 123,
       "start": "2021-11-21T23:58:09+01:00",
-      "duration": -1664810659,
+      "duration": -1637535489,
       "created_with": CREATED_WITH,
       "billable": false,
       "wid": 123456
@@ -445,7 +445,7 @@ fn test_start_time_entry() -> anyhow::Result<()> {
       "wid": 123456,
       "billable": false,
       "start": "2013-03-05T07:58:58.000Z",
-      "duration": -1362470338,
+      "duration": -1637535489,
       "description": "fkbr",
       "tags": ["a", "b"]
     }
