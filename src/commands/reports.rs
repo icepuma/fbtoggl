@@ -43,7 +43,7 @@ pub fn detailed(
     }
   }
 
-  println!("Range: {}", range);
+  println!("Range: {range}");
 
   let time_entries_by_user =
     time_entries.iter().into_group_map_by(|a| a.user.to_owned());
@@ -126,8 +126,7 @@ pub fn detailed(
         {
           warnings.push(
             format!(
-              "Worked for {} => break should be at least 30 minutes!",
-              hours_formatted
+              "Worked for {hours_formatted} => break should be at least 30 minutes!"
             )
             .red()
             .to_string(),
@@ -138,8 +137,7 @@ pub fn detailed(
         {
           warnings.push(
             format!(
-              "Worked for {} => break should be at least 45 minutes!",
-              hours_formatted
+              "Worked for {hours_formatted} => break should be at least 45 minutes!"
             )
             .red()
             .to_string(),

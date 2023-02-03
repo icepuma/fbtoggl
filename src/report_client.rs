@@ -67,7 +67,7 @@ impl TogglReportClient {
 
     if debug {
       println!("{}", "Request:".bold().underline());
-      println!("{:?}", request);
+      println!("{request:?}");
       println!();
     }
 
@@ -83,7 +83,7 @@ impl TogglReportClient {
   ) -> anyhow::Result<D> {
     if debug {
       println!("{}", "Response:".bold().underline());
-      println!("{:?}", response);
+      println!("{response:?}");
       println!();
     }
 
@@ -91,7 +91,7 @@ impl TogglReportClient {
       StatusCode::OK | StatusCode::CREATED if debug => match response.json() {
         Ok(json) => {
           println!("{}", "Received JSON response:".bold().underline());
-          println!("{:?}", json);
+          println!("{json:?}");
           println!();
 
           Ok(json)

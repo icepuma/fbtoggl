@@ -76,7 +76,7 @@ impl TogglClient {
 
     if debug {
       println!("{}", "Request:".bold().underline());
-      println!("{:?}", request);
+      println!("{request:?}");
       println!();
     }
 
@@ -95,7 +95,7 @@ impl TogglClient {
 
     if debug {
       println!("{}", "Request:".bold().underline());
-      println!("{:?}", request);
+      println!("{request:?}");
       println!();
     }
 
@@ -115,7 +115,7 @@ impl TogglClient {
 
     if debug {
       println!("{}", "Request:".bold().underline());
-      println!("{:?}", request);
+      println!("{request:?}");
       println!();
       println!("{:?}", &body);
       println!();
@@ -133,7 +133,7 @@ impl TogglClient {
   ) -> anyhow::Result<D> {
     if debug {
       println!("{}", "Response:".bold().underline());
-      println!("{:?}", response);
+      println!("{response:?}");
       println!();
     }
 
@@ -141,7 +141,7 @@ impl TogglClient {
       StatusCode::OK | StatusCode::CREATED if debug => match response.json() {
         Ok(json) => {
           println!("{}", "Received JSON response:".bold().underline());
-          println!("{:?}", json);
+          println!("{json:?}");
           println!();
 
           Ok(json)
@@ -174,7 +174,7 @@ impl TogglClient {
     self.request(
       debug,
       Method::GET,
-      &format!("workspaces/{}/clients", workspace_id),
+      &format!("workspaces/{workspace_id}/clients"),
     )
   }
 
@@ -214,7 +214,7 @@ impl TogglClient {
     self.request::<Vec<Project>>(
       debug,
       Method::GET,
-      &format!("workspaces/{}/projects", workspace_id),
+      &format!("workspaces/{workspace_id}/projects"),
     )
   }
 
@@ -243,7 +243,7 @@ impl TogglClient {
       "billable": billable,
     });
 
-    let uri = format!("workspaces/{}/time_entries", workspace_id);
+    let uri = format!("workspaces/{workspace_id}/time_entries");
 
     self.request_with_body(debug, Method::POST, &uri, body)
   }
@@ -260,7 +260,7 @@ impl TogglClient {
       "wid": workspace_id,
     });
 
-    let uri = format!("workspaces/{}/clients", workspace_id);
+    let uri = format!("workspaces/{workspace_id}/clients");
 
     self.request_with_body(debug, Method::POST, &uri, body)
   }
@@ -305,10 +305,7 @@ impl TogglClient {
     self.request(
       debug,
       Method::PATCH,
-      &format!(
-        "workspaces/{}/time_entries/{}/stop",
-        workspace_id, time_entry_id
-      ),
+      &format!("workspaces/{workspace_id}/time_entries/{time_entry_id}/stop"),
     )
   }
 
@@ -320,7 +317,7 @@ impl TogglClient {
     self.empty_request(
       debug,
       Method::DELETE,
-      &format!("time_entries/{}", time_entry_id),
+      &format!("time_entries/{time_entry_id}"),
     )
   }
 }

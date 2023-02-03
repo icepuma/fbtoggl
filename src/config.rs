@@ -20,7 +20,7 @@ pub fn init_settings_file() -> anyhow::Result<()> {
       .with_prompt("Override settings.toml file?")
       .interact()?
     {
-      println!("Override settings file {:?}", settings_file);
+      println!("Override settings file {settings_file:?}");
 
       write_config_file(&settings_file)?;
     } else {
@@ -45,7 +45,7 @@ fn write_config_file(path: &Path) -> anyhow::Result<()> {
 
   std::fs::write(path, content)?;
 
-  println!("Wrote settings file to {:?}", path);
+  println!("Wrote settings file to {path:?}");
 
   Ok(())
 }

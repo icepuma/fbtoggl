@@ -216,7 +216,7 @@ impl Display for Range {
         range.1.format("%Y-%m-%d")
       );
 
-      write!(f, "{}", text)
+      write!(f, "{text}")
     } else {
       write!(f, "Invalid range")
     }

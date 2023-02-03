@@ -218,7 +218,7 @@ pub enum Clients {
 pub(crate) fn output_values_json<T: Serialize>(values: &[T]) {
   for value in values {
     if let Ok(output) = serde_json::to_string_pretty(&value) {
-      println!("{}", output);
+      println!("{output}");
     }
   }
 }
