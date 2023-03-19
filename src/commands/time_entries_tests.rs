@@ -5,7 +5,7 @@ use crate::{
   commands::time_entries::create,
 };
 use chrono::{DateTime, Duration, Local};
-use mockito::{mock, Matcher};
+use mockito::Matcher;
 use pretty_assertions::assert_eq;
 use serde_json::{json, Value};
 use std::str::FromStr;
@@ -175,7 +175,10 @@ fn test_calculate_duration() -> anyhow::Result<()> {
 
 #[test]
 fn test_create_workday_with_pause_2_hours() -> anyhow::Result<()> {
-  let me_mock = mock("GET", "/me")
+  let mut server = mockito::Server::new();
+
+  let me_mock = server
+    .mock("GET", "/me")
     .with_header(
       "Authorization",
       "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
@@ -185,7 +188,8 @@ fn test_create_workday_with_pause_2_hours() -> anyhow::Result<()> {
     .expect(1)
     .create();
 
-  let projects_mock = mock("GET", "/workspaces/1234567/projects")
+  let projects_mock = server
+    .mock("GET", "/workspaces/1234567/projects")
     .with_header(
       "Authorization",
       "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
@@ -222,7 +226,8 @@ fn test_create_workday_with_pause_2_hours() -> anyhow::Result<()> {
     }
   );
 
-  let time_entry_create_mock = mock("POST", "/workspaces/1234567/time_entries")
+  let time_entry_create_mock = server
+    .mock("POST", "/workspaces/1234567/time_entries")
     .with_header(
       "Authorization",
       "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
@@ -233,16 +238,16 @@ fn test_create_workday_with_pause_2_hours() -> anyhow::Result<()> {
     .expect(1)
     .create();
 
-  let list_entries_mock =
-    mock("GET", Matcher::Regex(r"^/me/time_entries.*$".to_string()))
-      .with_header(
-        "Authorization",
-        "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
-      )
-      .with_status(200)
-      .expect(1)
-      .with_body("[]")
-      .create();
+  let list_entries_mock = server
+    .mock("GET", Matcher::Regex(r"^/me/time_entries.*$".to_string()))
+    .with_header(
+      "Authorization",
+      "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+    )
+    .with_status(200)
+    .expect(1)
+    .with_body("[]")
+    .create();
 
   {
     let workday_with_pause = CreateTimeEntry {
@@ -256,8 +261,10 @@ fn test_create_workday_with_pause_2_hours() -> anyhow::Result<()> {
       non_billable: true,
     };
 
-    let client =
-      TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
+    let client = TogglClient::new_with_base_url(
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_string(),
+      server.url().parse()?,
+    )?;
 
     create(
       false,
@@ -277,7 +284,10 @@ fn test_create_workday_with_pause_2_hours() -> anyhow::Result<()> {
 
 #[test]
 fn test_create_workday_with_pause_7_hours() -> anyhow::Result<()> {
-  let me_mock = mock("GET", "/me")
+  let mut server = mockito::Server::new();
+
+  let me_mock = server
+    .mock("GET", "/me")
     .with_header(
       "Authorization",
       "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
@@ -287,7 +297,8 @@ fn test_create_workday_with_pause_7_hours() -> anyhow::Result<()> {
     .expect(1)
     .create();
 
-  let projects_mock = mock("GET", "/workspaces/1234567/projects")
+  let projects_mock = server
+    .mock("GET", "/workspaces/1234567/projects")
     .with_header(
       "Authorization",
       "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
@@ -352,40 +363,40 @@ fn test_create_workday_with_pause_7_hours() -> anyhow::Result<()> {
     }
   );
 
-  let first_time_entry_create_mock =
-    mock("POST", "/workspaces/1234567/time_entries")
-      .with_header(
-        "Authorization",
-        "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
-      )
-      .with_status(200)
-      .with_body(first_response_body.to_string())
-      .match_body(Matcher::Json(first_request_body))
-      .expect(1)
-      .create();
+  let first_time_entry_create_mock = server
+    .mock("POST", "/workspaces/1234567/time_entries")
+    .with_header(
+      "Authorization",
+      "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+    )
+    .with_status(200)
+    .with_body(first_response_body.to_string())
+    .match_body(Matcher::Json(first_request_body))
+    .expect(1)
+    .create();
 
-  let second_time_entry_create_mock =
-    mock("POST", "/workspaces/1234567/time_entries")
-      .with_header(
-        "Authorization",
-        "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
-      )
-      .with_status(200)
-      .with_body(second_response_body.to_string())
-      .match_body(Matcher::Json(second_request_body))
-      .expect(1)
-      .create();
+  let second_time_entry_create_mock = server
+    .mock("POST", "/workspaces/1234567/time_entries")
+    .with_header(
+      "Authorization",
+      "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+    )
+    .with_status(200)
+    .with_body(second_response_body.to_string())
+    .match_body(Matcher::Json(second_request_body))
+    .expect(1)
+    .create();
 
-  let list_entries_mock =
-    mock("GET", Matcher::Regex(r"^/me/time_entries.*$".to_string()))
-      .with_header(
-        "Authorization",
-        "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
-      )
-      .with_status(200)
-      .expect(1)
-      .with_body("[]")
-      .create();
+  let list_entries_mock = server
+    .mock("GET", Matcher::Regex(r"^/me/time_entries.*$".to_string()))
+    .with_header(
+      "Authorization",
+      "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+    )
+    .with_status(200)
+    .expect(1)
+    .with_body("[]")
+    .create();
 
   {
     let workday_with_pause = CreateTimeEntry {
@@ -399,8 +410,10 @@ fn test_create_workday_with_pause_7_hours() -> anyhow::Result<()> {
       non_billable: false,
     };
 
-    let client =
-      TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
+    let client = TogglClient::new_with_base_url(
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_string(),
+      server.url().parse()?,
+    )?;
 
     create(
       false,

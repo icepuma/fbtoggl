@@ -3,7 +3,7 @@ use crate::{
   model::Range,
 };
 use chrono::{DateTime, Duration, Local, NaiveDate};
-use mockito::{mock, Matcher};
+use mockito::Matcher;
 use pretty_assertions::assert_eq;
 use serde_json::json;
 use std::str::FromStr;
@@ -24,13 +24,16 @@ fn teardown() {
 
 #[test]
 fn get_me() -> anyhow::Result<()> {
+  let mut server = mockito::Server::new();
+
   let body = json!(
     {
       "default_workspace_id": 1234567,
     }
   );
 
-  let mock = mock("GET", "/me")
+  let mock = server
+    .mock("GET", "/me")
     .with_header(
       "Authorization",
       "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
@@ -41,8 +44,11 @@ fn get_me() -> anyhow::Result<()> {
     .create();
 
   {
-    let client =
-      TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
+    let client = TogglClient::new_with_base_url(
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_string(),
+      server.url().parse()?,
+    )?;
+
     let me = client.get_me(false)?;
 
     assert_eq!(me.default_workspace_id, 1234567);
@@ -80,7 +86,10 @@ fn get_workspaces() -> anyhow::Result<()> {
     ]
   );
 
-  let mock = mock("GET", "/workspaces")
+  let mut server = mockito::Server::new();
+
+  let mock = server
+    .mock("GET", "/workspaces")
     .with_header(
       "Authorization",
       "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
@@ -91,8 +100,10 @@ fn get_workspaces() -> anyhow::Result<()> {
     .create();
 
   {
-    let client =
-      TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
+    let client = TogglClient::new_with_base_url(
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_string(),
+      server.url().parse()?,
+    )?;
 
     let workspaces = client.get_workspaces(false)?;
     let first_workspace = workspaces.first().unwrap();
@@ -125,7 +136,10 @@ fn get_workspace_clients() -> anyhow::Result<()> {
     ]
   );
 
-  let mock = mock("GET", "/workspaces/12345678/clients")
+  let mut server = mockito::Server::new();
+
+  let mock = server
+    .mock("GET", "/workspaces/12345678/clients")
     .with_header(
       "Authorization",
       "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
@@ -136,8 +150,10 @@ fn get_workspace_clients() -> anyhow::Result<()> {
     .create();
 
   {
-    let client =
-      TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
+    let client = TogglClient::new_with_base_url(
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_string(),
+      server.url().parse()?,
+    )?;
 
     let clients = client
       .get_workspace_clients(false, 12345678)?
@@ -198,7 +214,10 @@ fn get_workspace_projects() -> anyhow::Result<()> {
     ]
   );
 
-  let mock = mock("GET", "/workspaces/12345678/projects")
+  let mut server = mockito::Server::new();
+
+  let mock = server
+    .mock("GET", "/workspaces/12345678/projects")
     .with_header(
       "Authorization",
       "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
@@ -209,8 +228,10 @@ fn get_workspace_projects() -> anyhow::Result<()> {
     .create();
 
   {
-    let client =
-      TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
+    let client = TogglClient::new_with_base_url(
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_string(),
+      server.url().parse()?,
+    )?;
 
     let projects = client.get_workspace_projects(false, 12345678)?;
     let first_project = projects.get(0).unwrap();
@@ -265,22 +286,27 @@ fn get_time_entries() -> anyhow::Result<()> {
     ]
   );
 
-  let mock = mock(
-    "GET",
-    "/me/time_entries?start_date=2021-11-21&end_date=2021-11-23",
-  )
-  .with_header(
-    "Authorization",
-    "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
-  )
-  .with_status(200)
-  .with_body(body.to_string())
-  .expect(1)
-  .create();
+  let mut server = mockito::Server::new();
+
+  let mock = server
+    .mock(
+      "GET",
+      "/me/time_entries?start_date=2021-11-21&end_date=2021-11-23",
+    )
+    .with_header(
+      "Authorization",
+      "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+    )
+    .with_status(200)
+    .with_body(body.to_string())
+    .expect(1)
+    .create();
 
   {
-    let client =
-      TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
+    let client = TogglClient::new_with_base_url(
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_string(),
+      server.url().parse()?,
+    )?;
 
     let time_entries = client.get_time_entries(
       false,
@@ -337,7 +363,10 @@ fn create_time_entry() -> anyhow::Result<()> {
     }
   );
 
-  let mock = mock("POST", "/workspaces/123456789/time_entries")
+  let mut server = mockito::Server::new();
+
+  let mock = server
+    .mock("POST", "/workspaces/123456789/time_entries")
     .with_header(
       "Authorization",
       "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
@@ -349,8 +378,10 @@ fn create_time_entry() -> anyhow::Result<()> {
     .create();
 
   {
-    let client =
-      TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
+    let client = TogglClient::new_with_base_url(
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_string(),
+      server.url().parse()?,
+    )?;
 
     let created_time_entry = client.create_time_entry(
       false,
@@ -397,7 +428,10 @@ fn create_client() -> anyhow::Result<()> {
     }
   );
 
-  let mock = mock("POST", "/workspaces/123456789/clients")
+  let mut server = mockito::Server::new();
+
+  let mock = server
+    .mock("POST", "/workspaces/123456789/clients")
     .with_header(
       "Authorization",
       "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
@@ -409,8 +443,10 @@ fn create_client() -> anyhow::Result<()> {
     .create();
 
   {
-    let client =
-      TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
+    let client = TogglClient::new_with_base_url(
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_string(),
+      server.url().parse()?,
+    )?;
 
     let created_client = client.create_client(false, "fkbr.org", 123456789)?;
 
@@ -451,7 +487,10 @@ fn test_start_time_entry() -> anyhow::Result<()> {
     }
   );
 
-  let mock = mock("POST", "/time_entries")
+  let mut server = mockito::Server::new();
+
+  let mock = server
+    .mock("POST", "/time_entries")
     .with_header(
       "Authorization",
       "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
@@ -463,8 +502,10 @@ fn test_start_time_entry() -> anyhow::Result<()> {
     .create();
 
   {
-    let client =
-      TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
+    let client = TogglClient::new_with_base_url(
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_string(),
+      server.url().parse()?,
+    )?;
 
     let started_time_entry = client.start_time_entry(
       false,
@@ -499,7 +540,10 @@ fn test_stop_time_entry() -> anyhow::Result<()> {
     }
   );
 
-  let mock = mock("PATCH", "/workspaces/456/time_entries/123/stop")
+  let mut server = mockito::Server::new();
+
+  let mock = server
+    .mock("PATCH", "/workspaces/456/time_entries/123/stop")
     .with_header(
       "Authorization",
       "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
@@ -510,8 +554,10 @@ fn test_stop_time_entry() -> anyhow::Result<()> {
     .create();
 
   {
-    let client =
-      TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
+    let client = TogglClient::new_with_base_url(
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_string(),
+      server.url().parse()?,
+    )?;
 
     let started_time_entry = client.stop_time_entry(false, 456, 123)?;
 
@@ -525,7 +571,10 @@ fn test_stop_time_entry() -> anyhow::Result<()> {
 
 #[test]
 fn test_delete_time_entry() -> anyhow::Result<()> {
-  let mock = mock("DELETE", "/time_entries/456")
+  let mut server = mockito::Server::new();
+
+  let mock = server
+    .mock("DELETE", "/time_entries/456")
     .with_header(
       "Authorization",
       "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
@@ -535,8 +584,10 @@ fn test_delete_time_entry() -> anyhow::Result<()> {
     .create();
 
   {
-    let client =
-      TogglClient::new("cb7bf7efa6d652046abd2f7d84ee18c1".to_string())?;
+    let client = TogglClient::new_with_base_url(
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_string(),
+      server.url().parse()?,
+    )?;
 
     let deleted_time_entry = client.delete_time_entry(false, 456);
 

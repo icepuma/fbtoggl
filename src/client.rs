@@ -36,12 +36,22 @@ pub fn init_client() -> anyhow::Result<TogglClient> {
 
 impl TogglClient {
   pub fn new(api_token: String) -> anyhow::Result<TogglClient> {
-    #[cfg(not(test))]
     let base_url = "https://api.track.toggl.com/api/v9/".parse()?;
 
-    #[cfg(test)]
-    let base_url = mockito::server_url().parse()?;
+    let client = blocking::Client::new();
 
+    Ok(TogglClient {
+      base_url,
+      client,
+      api_token,
+    })
+  }
+
+  #[cfg(test)]
+  pub fn new_with_base_url(
+    api_token: String,
+    base_url: Url,
+  ) -> anyhow::Result<TogglClient> {
     let client = blocking::Client::new();
 
     Ok(TogglClient {

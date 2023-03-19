@@ -27,11 +27,7 @@ pub fn init_report_client() -> anyhow::Result<TogglReportClient> {
 
 impl TogglReportClient {
   pub fn new(api_token: String) -> anyhow::Result<TogglReportClient> {
-    #[cfg(not(test))]
     let base_url = "https://api.track.toggl.com/reports/api/v2/".parse()?;
-
-    #[cfg(test)]
-    let base_url = mockito::server_url().parse()?;
 
     let client = blocking::Client::new();
 
