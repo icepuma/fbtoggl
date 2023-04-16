@@ -10,7 +10,7 @@ readme = "README.md"
 license = "WTFPL"
 
 [dependencies]
-base64 = "0"
+base64 = "0.21"
 minreq = { version = "2", features = [
     "https-rustls-probe",
     "json-using-serde",
@@ -28,26 +28,26 @@ clap = { version = "4", features = [
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-chrono = { version = "0", features = ["serde", "clock"] }
+chrono = { version = "0.4", features = ["serde", "clock"] }
 chronoutil = "0.2"
-now = "0"
+now = "0.1"
 xdg = "2"
-config = "0"
-toml = "0"
-dialoguer = "0"
+config = "0.13"
+toml = "0.7"
+dialoguer = "0.10"
 urlencoding = "2"
-jackdauer = "0"
+jackdauer = "0.1"
 term-table = "1"
 colored = "2"
 hhmmss = "0.1"
-itertools = "0"
-htp = "0"
+itertools = "0.10"
+htp = "0.4"
 humantime = "2"
 url = "2"
 
 [dev-dependencies]
-env_logger = "0"
-ctor = "0"
+env_logger = "0.10"
+ctor = "0.2"
 pretty_assertions = "1"
 mockito = "1"
 
