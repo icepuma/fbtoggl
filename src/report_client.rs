@@ -4,20 +4,23 @@ use crate::config::read_settings;
 use crate::model::Range;
 use crate::model::ReportDetails;
 use anyhow::anyhow;
+use base64::engine::general_purpose::STANDARD;
+use base64::Engine;
 use colored::Colorize;
-use reqwest::blocking;
-use reqwest::Method;
-use reqwest::StatusCode;
-use reqwest::Url;
+use minreq::Method;
+use minreq::Request;
+use minreq::Response;
 use serde::de::DeserializeOwned;
+use url::Url;
 
 pub struct TogglReportClient {
   base_url: Url,
-  client: blocking::Client,
   api_token: String,
 }
 
-pub const CREATED_WITH: &str = "fbtoggl";
+pub const CREATED_WITH: &str = "fbtoggl (https://github.com/icepuma/fbtoggl)";
+
+const AUTHORIZATION: &str = "Authorization";
 
 pub fn init_report_client() -> anyhow::Result<TogglReportClient> {
   let settings = read_settings()?;
@@ -29,28 +32,25 @@ impl TogglReportClient {
   pub fn new(api_token: String) -> anyhow::Result<TogglReportClient> {
     let base_url = "https://api.track.toggl.com/reports/api/v2/".parse()?;
 
-    let client = blocking::Client::new();
-
     Ok(TogglReportClient {
       base_url,
-      client,
       api_token,
     })
   }
 
-  fn base_request(
-    &self,
-    method: Method,
-    uri: &str,
-  ) -> anyhow::Result<blocking::RequestBuilder> {
+  fn basic_auth(&self) -> (String, String) {
+    (
+      AUTHORIZATION.to_string(),
+      STANDARD.encode(format!("{}:api_token", &self.api_token)),
+    )
+  }
+
+  fn base_request(&self, method: Method, uri: &str) -> anyhow::Result<Request> {
     let url = self.base_url.join(uri)?;
 
-    Ok(
-      self
-        .client
-        .request(method, url)
-        .basic_auth(&self.api_token, Some("api_token")),
-    )
+    let (key, value) = self.basic_auth();
+
+    Ok(minreq::Request::new(method, url).with_header(key, value))
   }
 
   fn empty_request_with_body<D: DeserializeOwned + Debug>(
@@ -75,7 +75,7 @@ impl TogglReportClient {
   fn response<D: DeserializeOwned + Debug>(
     &self,
     debug: bool,
-    response: blocking::Response,
+    response: Response,
   ) -> anyhow::Result<D> {
     if debug {
       println!("{}", "Response:".bold().underline());
@@ -83,8 +83,8 @@ impl TogglReportClient {
       println!();
     }
 
-    match response.status() {
-      StatusCode::OK | StatusCode::CREATED if debug => match response.json() {
+    match response.status_code {
+      200 | 201 if debug => match response.json() {
         Ok(json) => {
           println!("{}", "Received JSON response:".bold().underline());
           println!("{json:?}");
@@ -94,8 +94,8 @@ impl TogglReportClient {
         }
         Err(err) => Err(anyhow!("Failed to deserialize JSON: {}", err)),
       },
-      StatusCode::OK | StatusCode::CREATED => Ok(response.json()?),
-      status => match response.text() {
+      200 | 201 => Ok(response.json()?),
+      status => match response.as_str() {
         Ok(text) => Err(anyhow!("{} - {}", status, text)),
         Err(_) => Err(anyhow!("{}", status)),
       },
@@ -120,6 +120,6 @@ impl TogglReportClient {
       end.naive_local().format("%Y-%m-%d"),
     );
 
-    self.empty_request_with_body(debug, Method::GET, &uri)
+    self.empty_request_with_body(debug, Method::Get, &uri)
   }
 }

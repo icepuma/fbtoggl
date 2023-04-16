@@ -10,6 +10,12 @@ readme = "README.md"
 license = "WTFPL"
 
 [dependencies]
+base64 = "0"
+minreq = { version = "2", features = [
+    "https-rustls-probe",
+    "json-using-serde",
+    "urlencoding",
+] }
 clap = { version = "4", features = [
     "deprecated",
     "derive",
@@ -18,11 +24,6 @@ clap = { version = "4", features = [
     "env",
     "unicode",
     "wrap_help",
-] }
-reqwest = { default-features = false, version = "0", features = [
-    "blocking",
-    "json",
-    "rustls-tls",
 ] }
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }
@@ -42,6 +43,7 @@ hhmmss = "0.1"
 itertools = "0"
 htp = "0"
 humantime = "2"
+url = "2"
 
 [dev-dependencies]
 env_logger = "0"

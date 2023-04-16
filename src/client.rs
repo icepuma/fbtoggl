@@ -8,25 +8,28 @@ use crate::model::Range;
 use crate::model::TimeEntry;
 use crate::model::Workspace;
 use anyhow::anyhow;
+use base64::engine::general_purpose::STANDARD;
+use base64::Engine;
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::Local;
 use colored::Colorize;
-use reqwest::blocking;
-use reqwest::Method;
-use reqwest::StatusCode;
-use reqwest::Url;
+use minreq::Method;
+use minreq::Request;
+use minreq::Response;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::json;
+use url::Url;
 
 pub struct TogglClient {
   base_url: Url,
-  client: blocking::Client,
   api_token: String,
 }
 
 pub const CREATED_WITH: &str = "fbtoggl (https://github.com/icepuma/fbtoggl)";
+
+const AUTHORIZATION: &str = "Authorization";
 
 pub fn init_client() -> anyhow::Result<TogglClient> {
   let settings = read_settings()?;
@@ -38,11 +41,8 @@ impl TogglClient {
   pub fn new(api_token: String) -> anyhow::Result<TogglClient> {
     let base_url = "https://api.track.toggl.com/api/v9/".parse()?;
 
-    let client = blocking::Client::new();
-
     Ok(TogglClient {
       base_url,
-      client,
       api_token,
     })
   }
@@ -52,28 +52,28 @@ impl TogglClient {
     api_token: String,
     base_url: Url,
   ) -> anyhow::Result<TogglClient> {
-    let client = blocking::Client::new();
-
     Ok(TogglClient {
       base_url,
-      client,
       api_token,
     })
   }
 
-  fn base_request(
-    &self,
-    method: Method,
-    uri: &str,
-  ) -> anyhow::Result<blocking::RequestBuilder> {
+  fn basic_auth(&self) -> (String, String) {
+    (
+      AUTHORIZATION.to_string(),
+      format!(
+        "Basic {}",
+        STANDARD.encode(format!("{}:api_token", &self.api_token))
+      ),
+    )
+  }
+
+  fn base_request(&self, method: Method, uri: &str) -> anyhow::Result<Request> {
     let url = self.base_url.join(uri)?;
 
-    Ok(
-      self
-        .client
-        .request(method, url)
-        .basic_auth(&self.api_token, Some("api_token")),
-    )
+    let (key, value) = self.basic_auth();
+
+    Ok(minreq::Request::new(method, url).with_header(key, value))
   }
 
   fn request<D: DeserializeOwned + Debug>(
@@ -121,7 +121,7 @@ impl TogglClient {
     uri: &str,
     body: S,
   ) -> anyhow::Result<D> {
-    let request = self.base_request(method, uri)?.json(&body);
+    let request = self.base_request(method, uri)?.with_json(&body)?;
 
     if debug {
       println!("{}", "Request:".bold().underline());
@@ -139,7 +139,7 @@ impl TogglClient {
   fn response<D: DeserializeOwned + Debug>(
     &self,
     debug: bool,
-    response: blocking::Response,
+    response: Response,
   ) -> anyhow::Result<D> {
     if debug {
       println!("{}", "Response:".bold().underline());
@@ -147,8 +147,8 @@ impl TogglClient {
       println!();
     }
 
-    match response.status() {
-      StatusCode::OK | StatusCode::CREATED if debug => match response.json() {
+    match response.status_code {
+      200 | 201 if debug => match response.json() {
         Ok(json) => {
           println!("{}", "Received JSON response:".bold().underline());
           println!("{json:?}");
@@ -158,18 +158,18 @@ impl TogglClient {
         }
         Err(err) => Err(anyhow!("Failed to deserialize JSON: {}", err)),
       },
-      StatusCode::OK | StatusCode::CREATED => Ok(response.json()?),
-      status => match response.text() {
+      200 | 201 => Ok(response.json()?),
+      status => match response.as_str() {
         Ok(text) => Err(anyhow!("{} - {}", status, text)),
         Err(_) => Err(anyhow!("{}", status)),
       },
     }
   }
 
-  fn empty_response(&self, response: blocking::Response) -> anyhow::Result<()> {
-    match response.status() {
-      StatusCode::OK | StatusCode::CREATED => Ok(()),
-      status => match response.text() {
+  fn empty_response(&self, response: Response) -> anyhow::Result<()> {
+    match response.status_code {
+      200 | 201 => Ok(()),
+      status => match response.as_str() {
         Ok(text) => Err(anyhow!("{} - {}", status, text)),
         Err(_) => Err(anyhow!("{}", status)),
       },
@@ -183,7 +183,7 @@ impl TogglClient {
   ) -> anyhow::Result<Option<Vec<Client>>> {
     self.request(
       debug,
-      Method::GET,
+      Method::Get,
       &format!("workspaces/{workspace_id}/clients"),
     )
   }
@@ -205,15 +205,15 @@ impl TogglClient {
       urlencoding::encode(&end_date),
     );
 
-    self.request::<Vec<TimeEntry>>(debug, Method::GET, &uri)
+    self.request::<Vec<TimeEntry>>(debug, Method::Get, &uri)
   }
 
   pub fn get_workspaces(&self, debug: bool) -> anyhow::Result<Vec<Workspace>> {
-    self.request::<Vec<Workspace>>(debug, Method::GET, "workspaces")
+    self.request::<Vec<Workspace>>(debug, Method::Get, "workspaces")
   }
 
   pub fn get_me(&self, debug: bool) -> anyhow::Result<Me> {
-    self.request::<Me>(debug, Method::GET, "me")
+    self.request::<Me>(debug, Method::Get, "me")
   }
 
   pub fn get_workspace_projects(
@@ -223,7 +223,7 @@ impl TogglClient {
   ) -> anyhow::Result<Vec<Project>> {
     self.request::<Vec<Project>>(
       debug,
-      Method::GET,
+      Method::Get,
       &format!("workspaces/{workspace_id}/projects"),
     )
   }
@@ -255,7 +255,7 @@ impl TogglClient {
 
     let uri = format!("workspaces/{workspace_id}/time_entries");
 
-    self.request_with_body(debug, Method::POST, &uri, body)
+    self.request_with_body(debug, Method::Post, &uri, body)
   }
 
   pub fn create_client(
@@ -272,7 +272,7 @@ impl TogglClient {
 
     let uri = format!("workspaces/{workspace_id}/clients");
 
-    self.request_with_body(debug, Method::POST, &uri, body)
+    self.request_with_body(debug, Method::Post, &uri, body)
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -303,7 +303,7 @@ impl TogglClient {
 
     let uri = "time_entries".to_string();
 
-    self.request_with_body(debug, Method::POST, &uri, body)
+    self.request_with_body(debug, Method::Post, &uri, body)
   }
 
   pub fn stop_time_entry(
@@ -314,7 +314,7 @@ impl TogglClient {
   ) -> anyhow::Result<TimeEntry> {
     self.request(
       debug,
-      Method::PATCH,
+      Method::Patch,
       &format!("workspaces/{workspace_id}/time_entries/{time_entry_id}/stop"),
     )
   }
@@ -326,7 +326,7 @@ impl TogglClient {
   ) -> anyhow::Result<()> {
     self.empty_request(
       debug,
-      Method::DELETE,
+      Method::Delete,
       &format!("time_entries/{time_entry_id}"),
     )
   }
