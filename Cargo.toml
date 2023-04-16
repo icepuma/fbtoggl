@@ -50,3 +50,9 @@ env_logger = "0"
 ctor = "0"
 pretty_assertions = "1"
 mockito = "1"
+
+[profile.release]
+lto = true
+strip = true
+opt-level = "z"
+codegen-units = 1
