@@ -1,7 +1,7 @@
 use crate::cli::{Clients, Options, SubCommand, TimeEntries};
 use crate::config::init_settings_file;
 use clap::Parser;
-use cli::Reports;
+use cli::{Reports, Settings};
 use client::init_client;
 use report_client::init_report_client;
 
@@ -22,6 +22,9 @@ fn main() -> anyhow::Result<()> {
 
   match options.subcommand {
     SubCommand::Init => init_settings_file()?,
+    SubCommand::Settings(action) => match action {
+      Settings::Init => init_settings_file()?,
+    },
     SubCommand::Projects(_action) => {
       let client = init_client()?;
 

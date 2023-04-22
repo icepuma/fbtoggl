@@ -29,8 +29,11 @@ pub enum Format {
 
 #[derive(Subcommand, Debug)]
 pub enum SubCommand {
-  /// Initialize settings
+  /// (deprecated: use 'fbtoggl settings init') Initialize settings
   Init,
+
+  #[command(subcommand, about = "Settings")]
+  Settings(Settings),
 
   #[command(subcommand, about = "Workspaces")]
   Workspaces(Workspaces),
@@ -46,6 +49,12 @@ pub enum SubCommand {
 
   #[command(subcommand, about = "Reports")]
   Reports(Reports),
+}
+
+#[derive(Subcommand, Debug)]
+pub enum Settings {
+  /// Initialize settings
+  Init,
 }
 
 #[derive(Subcommand, Debug)]
