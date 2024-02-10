@@ -28,7 +28,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           name: Release fbtoggl ${{ github.ref_name }}
-          body: "No changelog, but [here](https://cataas.com/cat) is a random cat GIF for your amusement!"
+          generate_release_notes: true
           draft: false
           prerelease: false
           files: |
