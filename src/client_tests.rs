@@ -158,7 +158,7 @@ fn get_workspace_clients() -> anyhow::Result<()> {
     let clients = client
       .get_workspace_clients(false, 12345678)?
       .unwrap_or_default();
-    let first_client = clients.get(0).unwrap();
+    let first_client = clients.first().unwrap();
     let second_client = clients.get(1).unwrap();
 
     assert_eq!(first_client.id, 1234);
@@ -234,7 +234,7 @@ fn get_workspace_projects() -> anyhow::Result<()> {
     )?;
 
     let projects = client.get_workspace_projects(false, 12345678)?;
-    let first_project = projects.get(0).unwrap();
+    let first_project = projects.first().unwrap();
     let second_project = projects.get(1).unwrap();
 
     assert_eq!(first_project.id, 123456789);
@@ -312,7 +312,7 @@ fn get_time_entries() -> anyhow::Result<()> {
       false,
       &Range::Date(NaiveDate::from_ymd_opt(2021, 11, 21).unwrap()),
     )?;
-    let first_time_entry = time_entries.get(0).unwrap();
+    let first_time_entry = time_entries.first().unwrap();
     let second_time_entry = time_entries.get(1).unwrap();
 
     assert_eq!(first_time_entry.id, 123456789);
