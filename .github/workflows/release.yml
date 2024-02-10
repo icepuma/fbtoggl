@@ -11,7 +11,7 @@ jobs:
       BINARY_NAME: fbtoggl
       CARGO_TERM_COLOR: always
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: cargo login ${CARGO_RELEASE_TOKEN}
         env:
           CARGO_RELEASE_TOKEN: ${{ secrets.CARGO_RELEASE_TOKEN }}
