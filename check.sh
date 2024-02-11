@@ -3,4 +3,4 @@ set -euo pipefail
 
 cargo fmt
 cargo clippy --all-targets --all-features
-cargo test run
+cargo test --all-targets

@@ -125,13 +125,15 @@ fn get_workspace_clients() -> anyhow::Result<()> {
         "id": 1234,
         "wid": 12345678,
         "name": "fkbr.org",
-        "at": "2021-11-16T09:30:21+00:00"
+        "at": "2021-11-16T09:30:21+00:00",
+        "archived": false
       },
       {
         "id": 2345,
         "wid": 12345678,
         "name": "beta male gmbh",
-        "at": "2021-11-16T08:42:34+00:00"
+        "at": "2021-11-16T08:42:34+00:00",
+        "archived": false
       }
     ]
   );
@@ -156,7 +158,7 @@ fn get_workspace_clients() -> anyhow::Result<()> {
     )?;
 
     let clients = client
-      .get_workspace_clients(false, 12345678)?
+      .get_workspace_clients(false, false, 12345678)?
       .unwrap_or_default();
     let first_client = clients.first().unwrap();
     let second_client = clients.get(1).unwrap();
@@ -191,7 +193,8 @@ fn get_workspace_projects() -> anyhow::Result<()> {
         "color": "5",
         "auto_estimates": false,
         "actual_hours": 4,
-        "hex_color": "#2da608"
+        "hex_color": "#2da608",
+        "status": "active"
       },
       {
         "id": 987654321,
@@ -209,7 +212,8 @@ fn get_workspace_projects() -> anyhow::Result<()> {
         "actual_hours": 23,
         "rate": 100,
         "currency": "EUR",
-        "hex_color": "#525266"
+        "hex_color": "#525266",
+        "status": "active"
       }
     ]
   );
@@ -233,7 +237,7 @@ fn get_workspace_projects() -> anyhow::Result<()> {
       server.url().parse()?,
     )?;
 
-    let projects = client.get_workspace_projects(false, 12345678)?;
+    let projects = client.get_workspace_projects(false, false, 12345678)?;
     let first_project = projects.first().unwrap();
     let second_project = projects.get(1).unwrap();
 
@@ -424,7 +428,8 @@ fn create_client() -> anyhow::Result<()> {
     {
       "id": 1234567890,
       "wid": 123456789,
-      "name": "fkbr.org"
+      "name": "fkbr.org",
+      "archived": false
     }
   );
 

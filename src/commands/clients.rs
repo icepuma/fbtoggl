@@ -32,14 +32,17 @@ pub fn create(
 
 pub fn list(
   debug: bool,
+  include_archived: bool,
   format: &Format,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
   let me = client.get_me(debug)?;
 
-  if let Ok(Some(clients)) =
-    client.get_workspace_clients(debug, me.default_workspace_id)
-  {
+  if let Ok(Some(clients)) = client.get_workspace_clients(
+    debug,
+    include_archived,
+    me.default_workspace_id,
+  ) {
     match format {
       Format::Json => output_values_json(&clients),
       Format::Raw => output_values_raw(&clients),

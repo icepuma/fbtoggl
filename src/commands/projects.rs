@@ -9,12 +9,16 @@ use crate::{
 
 pub fn list(
   debug: bool,
+  include_archived: bool,
   format: &Format,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
   let me = client.get_me(debug)?;
-  let workspace_projects =
-    client.get_workspace_projects(debug, me.default_workspace_id)?;
+  let workspace_projects = client.get_workspace_projects(
+    debug,
+    include_archived,
+    me.default_workspace_id,
+  )?;
 
   if workspace_projects.is_empty() {
     println!("No entries found!");

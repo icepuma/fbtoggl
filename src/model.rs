@@ -26,6 +26,7 @@ pub struct Project {
   pub id: u64,
   pub name: String,
   pub wid: u64,
+  pub status: String,
   pub cid: Option<u64>,
 }
 
@@ -56,6 +57,7 @@ pub struct TimeEntry {
 pub struct Client {
   pub id: u64,
   pub name: String,
+  pub archived: bool,
 }
 
 #[derive(Debug, Clone, Copy)]

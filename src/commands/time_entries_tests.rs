@@ -457,7 +457,8 @@ fn projects() -> Value {
         "color": "5",
         "auto_estimates": false,
         "actual_hours": 4,
-        "hex_color": "#2da608"
+        "hex_color": "#2da608",
+        "status": "active"
       },
       {
         "id": 987654321,
@@ -475,7 +476,8 @@ fn projects() -> Value {
         "actual_hours": 23,
         "rate": 100,
         "currency": "EUR",
-        "hex_color": "#525266"
+        "hex_color": "#525266",
+        "status": "active"
       }
     ]
   )
