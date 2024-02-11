@@ -14,6 +14,7 @@ use chrono::DateTime;
 use chrono::Duration;
 use chrono::Local;
 use colored::Colorize;
+use itertools::Itertools;
 use minreq::Method;
 use minreq::Request;
 use minreq::Response;
@@ -179,13 +180,25 @@ impl TogglClient {
   pub fn get_workspace_clients(
     &self,
     debug: bool,
+    include_archived: bool,
     workspace_id: u64,
   ) -> anyhow::Result<Option<Vec<Client>>> {
-    self.request(
+    let clients = self.request(
       debug,
       Method::Get,
       &format!("workspaces/{workspace_id}/clients"),
-    )
+    )?;
+
+    match clients {
+      Some(clients) if include_archived => Ok(Some(clients)),
+      Some(clients) => Ok(Some(
+        clients
+          .into_iter()
+          .filter(|client| !client.archived)
+          .collect_vec(),
+      )),
+      None => Ok(None),
+    }
   }
 
   pub fn get_time_entries(
@@ -219,13 +232,25 @@ impl TogglClient {
   pub fn get_workspace_projects(
     &self,
     debug: bool,
+    include_archived: bool,
     workspace_id: u64,
   ) -> anyhow::Result<Vec<Project>> {
-    self.request::<Vec<Project>>(
+    let projects = self.request::<Vec<Project>>(
       debug,
       Method::Get,
       &format!("workspaces/{workspace_id}/projects"),
-    )
+    )?;
+
+    if include_archived {
+      Ok(projects)
+    } else {
+      Ok(
+        projects
+          .into_iter()
+          .filter(|project| project.status != "archived")
+          .collect_vec(),
+      )
+    }
   }
 
   #[allow(clippy::too_many_arguments)]

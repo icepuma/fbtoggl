@@ -76,9 +76,9 @@ pub fn list(
 
     let workspace_id = me.default_workspace_id;
 
-    let projects = client.get_workspace_projects(debug, workspace_id)?;
+    let projects = client.get_workspace_projects(debug, false, workspace_id)?;
     let clients = client
-      .get_workspace_clients(debug, workspace_id)?
+      .get_workspace_clients(debug, false, workspace_id)?
       .unwrap_or_default();
 
     let output_entries = collect_output_entries(
@@ -165,7 +165,7 @@ pub fn create(
 ) -> anyhow::Result<()> {
   let me = client.get_me(debug)?;
   let workspace_id = me.default_workspace_id;
-  let projects = client.get_workspace_projects(debug, workspace_id)?;
+  let projects = client.get_workspace_projects(debug, false, workspace_id)?;
 
   let project = projects
     .iter()
@@ -273,7 +273,7 @@ pub fn start(
 ) -> anyhow::Result<()> {
   let me = client.get_me(debug)?;
   let workspace_id = me.default_workspace_id;
-  let projects = client.get_workspace_projects(debug, workspace_id)?;
+  let projects = client.get_workspace_projects(debug, false, workspace_id)?;
 
   let project = projects
     .iter()

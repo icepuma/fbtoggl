@@ -1,7 +1,7 @@
 use crate::cli::{Clients, Options, SubCommand, TimeEntries};
 use crate::config::init_settings_file;
 use clap::Parser;
-use cli::{Reports, Settings};
+use cli::{Projects, Reports, Settings};
 use client::init_client;
 use report_client::init_report_client;
 
@@ -25,11 +25,18 @@ fn main() -> anyhow::Result<()> {
     SubCommand::Settings(action) => match action {
       Settings::Init => init_settings_file()?,
     },
-    SubCommand::Projects(_action) => {
-      let client = init_client()?;
+    SubCommand::Projects(action) => match action {
+      Projects::List(list_projects) => {
+        let client = init_client()?;
 
-      commands::projects::list(debug, &format, &client)?;
-    }
+        commands::projects::list(
+          debug,
+          list_projects.include_archived,
+          &format,
+          &client,
+        )?;
+      }
+    },
     SubCommand::Workspaces(_action) => {
       let client = init_client()?;
 
@@ -70,9 +77,14 @@ fn main() -> anyhow::Result<()> {
         let client = init_client()?;
         commands::clients::create(debug, &format, &create_client, &client)?
       }
-      Clients::List => {
+      Clients::List(list_clients) => {
         let client = init_client()?;
-        commands::clients::list(debug, &format, &client)?;
+        commands::clients::list(
+          debug,
+          list_clients.include_archived,
+          &format,
+          &client,
+        )?;
       }
     },
 

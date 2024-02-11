@@ -76,10 +76,17 @@ pub enum Workspaces {
   List,
 }
 
+#[derive(Parser, Debug)]
+pub struct ListProjects {
+  /// Include archived projects
+  #[arg(long, default_value_t = false)]
+  pub include_archived: bool,
+}
+
 #[derive(Subcommand, Debug)]
 pub enum Projects {
   /// List all projects (default workspace)
-  List,
+  List(ListProjects),
 }
 
 #[derive(Parser, Debug)]
@@ -216,9 +223,16 @@ pub struct TimeEntryDetails {
 }
 
 #[derive(Parser, Debug)]
+pub struct ListClients {
+  /// Include archived
+  #[arg(long, default_value_t = false)]
+  pub include_archived: bool,
+}
+
+#[derive(Parser, Debug)]
 pub enum Clients {
   /// List all clients (default workspace)
-  List,
+  List(ListClients),
 
   /// Create client (in default workspace)
   Create(CreateClient),
