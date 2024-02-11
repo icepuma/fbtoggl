@@ -189,7 +189,7 @@ fn test_create_workday_with_pause_2_hours() -> anyhow::Result<()> {
     .create();
 
   let projects_mock = server
-    .mock("GET", "/workspaces/1234567/projects")
+    .mock("GET", "/workspaces/1234567/projects?active=true")
     .with_header(
       "Authorization",
       "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
@@ -298,7 +298,7 @@ fn test_create_workday_with_pause_7_hours() -> anyhow::Result<()> {
     .create();
 
   let projects_mock = server
-    .mock("GET", "/workspaces/1234567/projects")
+    .mock("GET", "/workspaces/1234567/projects?active=true")
     .with_header(
       "Authorization",
       "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",

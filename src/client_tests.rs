@@ -141,7 +141,7 @@ fn get_workspace_clients() -> anyhow::Result<()> {
   let mut server = mockito::Server::new();
 
   let mock = server
-    .mock("GET", "/workspaces/12345678/clients")
+    .mock("GET", "/workspaces/12345678/clients?status=active")
     .with_header(
       "Authorization",
       "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
@@ -221,7 +221,7 @@ fn get_workspace_projects() -> anyhow::Result<()> {
   let mut server = mockito::Server::new();
 
   let mock = server
-    .mock("GET", "/workspaces/12345678/projects")
+    .mock("GET", "/workspaces/12345678/projects?active=true")
     .with_header(
       "Authorization",
       "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
