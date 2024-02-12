@@ -1,6 +1,6 @@
 [package]
 name = "fbtoggl"
-version = "2024.2.11"
+version = "2024.2.12"
 edition = "2021"
 authors = ["Stefan Ruzitschka <stefan@icepuma.dev>"]
 description = "Terminal client to interact with track.toggl.com REST api."
