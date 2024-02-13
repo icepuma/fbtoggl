@@ -7,7 +7,7 @@ description = "Terminal client to interact with track.toggl.com REST api."
 keywords = ["toggl", "track", "time-tracking", "cli", "productivity"]
 repository = "https://github.com/icepuma/fbtoggl"
 readme = "README.md"
-license = "WTFPL"
+license-file = "LICENSE"
 
 [dependencies]
 base64 = "0.21"
