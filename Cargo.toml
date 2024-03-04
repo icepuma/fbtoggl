@@ -10,7 +10,7 @@ readme = "README.md"
 license-file = "LICENSE"
 
 [dependencies]
-base64 = "0.21"
+base64 = "0.22"
 minreq = { version = "2", features = [
     "https-rustls-probe",
     "json-using-serde",
