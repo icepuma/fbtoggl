@@ -25,7 +25,7 @@ jobs:
       - run: cp ./target/x86_64-unknown-linux-musl/release/fbtoggl fbtoggl
       - run: sha512sum fbtoggl > fbtoggl.sha512sum
       - id: github_release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           name: Release fbtoggl ${{ github.ref_name }}
           generate_release_notes: true
