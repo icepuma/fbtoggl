@@ -511,7 +511,7 @@ checksum = "25cbce373ec4653f1a01a31e8a5e5ec0c622dc27ff9c4e6606eefef5cbbed4a5"
 
 [[package]]
 name = "fbtoggl"
-version = "2024.2.14"
+version = "2024.3.18"
 dependencies = [
  "anyhow",
  "base64 0.22.0",
