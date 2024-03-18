@@ -200,7 +200,9 @@ impl TogglClient {
     let start_date = start.format("%Y-%m-%d").to_string();
 
     // End date is not inclusive, therefore we add one day
-    let end_date = (end + Duration::days(1)).format("%Y-%m-%d").to_string();
+    let end_date = (end + Duration::try_days(1).unwrap())
+      .format("%Y-%m-%d")
+      .to_string();
 
     let uri = format!(
       "me/time_entries?start_date={}&end_date={}",

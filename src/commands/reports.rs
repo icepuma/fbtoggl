@@ -58,7 +58,7 @@ pub fn detailed(
   for (user, time_entries) in time_entries_by_user {
     let total_hours = time_entries
       .iter()
-      .map(|time_entry| Duration::milliseconds(time_entry.dur as i64))
+      .flat_map(|time_entry| Duration::try_milliseconds(time_entry.dur as i64))
       .fold(Duration::zero(), |a, b| a + b);
 
     println!();
@@ -77,7 +77,9 @@ pub fn detailed(
 
       let hours = time_entries
         .iter()
-        .map(|time_entry| Duration::milliseconds(time_entry.dur as i64))
+        .flat_map(|time_entry| {
+          Duration::try_milliseconds(time_entry.dur as i64)
+        })
         .fold(Duration::zero(), |a, b| a + b);
 
       let start = time_entries
@@ -121,8 +123,9 @@ pub fn detailed(
       // https://www.gesetze-im-internet.de/arbzg/__4.html#:~:text=Arbeitszeitgesetz%20(ArbZG),neun%20Stunden%20insgesamt%20zu%20unterbrechen.
       let formatted_break = if let Some(r#break) = r#break {
         // between 6 and less than 10 hours, break has to be at least 30 minutes
-        if (hours > Duration::hours(6) && hours < Duration::hours(10))
-          && r#break < Duration::minutes(30)
+        if (hours > Duration::try_hours(6).unwrap()
+          && hours < Duration::try_hours(10).unwrap())
+          && r#break < Duration::try_minutes(30).unwrap()
         {
           warnings.push(
             format!(
@@ -133,7 +136,8 @@ pub fn detailed(
           );
         }
         // more than 9 hours, break has to be at least 45 minutes
-        else if hours > Duration::hours(9) && r#break < Duration::minutes(45)
+        else if hours > Duration::try_hours(9).unwrap()
+          && r#break < Duration::try_minutes(45).unwrap()
         {
           warnings.push(
             format!(
