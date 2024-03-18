@@ -30,7 +30,7 @@ fn test_calculate_duration() -> anyhow::Result<()> {
     project: "fkbr".to_string(),
     start: DateTime::<Local>::from_str("2021-11-21T22:58:09Z")?,
     end: None,
-    duration: Some(Duration::hours(2)),
+    duration: Some(Duration::try_hours(2).unwrap()),
     non_billable: false,
     lunch_break: false,
     description: None,
@@ -39,7 +39,7 @@ fn test_calculate_duration() -> anyhow::Result<()> {
 
   assert_eq!(
     calculate_duration(&time_entry_with_duration_but_without_end)?,
-    Duration::hours(2)
+    Duration::try_hours(2).unwrap()
   );
 
   let time_entry_without_duration_but_with_end = CreateTimeEntry {
@@ -55,7 +55,7 @@ fn test_calculate_duration() -> anyhow::Result<()> {
 
   assert_eq!(
     calculate_duration(&time_entry_without_duration_but_with_end)?,
-    Duration::hours(2)
+    Duration::try_hours(2).unwrap()
   );
 
   let time_entry_without_duration_and_without_end = CreateTimeEntry {
@@ -92,7 +92,7 @@ fn test_calculate_duration() -> anyhow::Result<()> {
     calculate_duration(
       &time_entry_with_duration_but_without_end_and_lunch_break
     )?,
-    Duration::hours(1)
+    Duration::try_hours(1).unwrap()
   );
 
   let time_entry_with_duration_but_without_end_and_lunch_break =
@@ -100,7 +100,7 @@ fn test_calculate_duration() -> anyhow::Result<()> {
       project: "fkbr".to_string(),
       start: DateTime::<Local>::from_str("2021-11-21T22:58:09Z")?,
       end: None,
-      duration: Some(Duration::hours(2)),
+      duration: Duration::try_hours(2),
       non_billable: false,
       lunch_break: false,
       description: None,
@@ -111,7 +111,7 @@ fn test_calculate_duration() -> anyhow::Result<()> {
     calculate_duration(
       &time_entry_with_duration_but_without_end_and_lunch_break
     )?,
-    Duration::hours(2)
+    Duration::try_hours(2).unwrap()
   );
 
   let time_entry_with_start_is_the_same_as_end = CreateTimeEntry {
@@ -254,7 +254,7 @@ fn test_create_workday_with_pause_2_hours() -> anyhow::Result<()> {
       description: Some("fkbr".to_string()),
       start: DateTime::<Local>::from_str("2021-11-21T22:58:09Z")?,
       end: None,
-      duration: Some(Duration::hours(2)),
+      duration: Duration::try_hours(2),
       lunch_break: false,
       project: "betamale gmbh".to_string(),
       tags: None,
@@ -403,7 +403,7 @@ fn test_create_workday_with_pause_7_hours() -> anyhow::Result<()> {
       description: Some("fkbr".to_string()),
       start: DateTime::<Local>::from_str("2021-11-21T22:58:09+01:00")?,
       end: None,
-      duration: Some(Duration::hours(7)),
+      duration: Duration::try_hours(7),
       lunch_break: true,
       project: "betamale gmbh".to_string(),
       tags: None,

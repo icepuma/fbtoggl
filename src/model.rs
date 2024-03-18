@@ -93,7 +93,7 @@ impl Range {
         missing_days.push(it);
       }
 
-      it += Duration::days(1);
+      it += Duration::try_days(1).unwrap();
     }
 
     Ok(missing_days)
@@ -108,19 +108,19 @@ impl Range {
           .single()
           .ok_or_else(|| anyhow::anyhow!("Could not create start datetime"))?;
 
-        let end = start + Duration::days(1);
+        let end = start + Duration::try_days(1).unwrap();
 
         Ok((start, end))
       }
       Range::Yesterday => {
-        let now = Local::now() - Duration::days(1);
+        let now = Local::now() - Duration::try_days(1).unwrap();
 
         let start = Local
           .with_ymd_and_hms(now.year(), now.month(), now.day(), 0, 0, 0)
           .single()
           .ok_or_else(|| anyhow::anyhow!("Could not create start datetime"))?;
 
-        let end = start + Duration::days(1);
+        let end = start + Duration::try_days(1).unwrap();
 
         Ok((start, end))
       }
@@ -130,7 +130,7 @@ impl Range {
         Ok((now.beginning_of_week(), now.end_of_week()))
       }
       Range::LastWeek => {
-        let now = Local::now() - Duration::weeks(1);
+        let now = Local::now() - Duration::try_weeks(1).unwrap();
 
         Ok((now.beginning_of_week(), now.end_of_week()))
       }
@@ -161,7 +161,7 @@ impl Range {
           )
         })?;
 
-        let end = end + Duration::days(1);
+        let end = end + Duration::try_days(1).unwrap();
 
         Ok((
           Local.from_local_datetime(&start).unwrap(),
@@ -179,7 +179,7 @@ impl Range {
             )
           })?;
 
-        let end = start + Duration::days(1);
+        let end = start + Duration::try_days(1).unwrap();
 
         Ok((start, end))
       }

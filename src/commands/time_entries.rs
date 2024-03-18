@@ -133,7 +133,7 @@ fn collect_output_entries(
     let duration = if entry.duration.is_negative() {
       Duration::zero()
     } else {
-      Duration::seconds(entry.duration)
+      Duration::try_seconds(entry.duration).unwrap_or_default()
     };
 
     output_entries.push(OutputEntry {
@@ -222,7 +222,7 @@ pub fn create(
 }
 
 fn launch_break() -> Duration {
-  Duration::hours(1)
+  Duration::try_hours(1).unwrap()
 }
 
 pub(super) fn calculate_duration(
@@ -471,7 +471,12 @@ fn output_values_table(output_entries: &[OutputEntry]) {
 
       let date_row = Row::new(vec![
         TableCell::new(date.to_string().bold()),
-        TableCell::new(Duration::seconds(time_sum).hhmmss().bold()),
+        TableCell::new(
+          Duration::try_seconds(time_sum)
+            .unwrap_or_default()
+            .hhmmss()
+            .bold(),
+        ),
         TableCell::new(""),
         TableCell::new(""),
         TableCell::new(""),
@@ -524,7 +529,8 @@ fn output_values_table(output_entries: &[OutputEntry]) {
     let total_sum_row = Row::new(vec![
       TableCell::new("Total".bold()),
       TableCell::new(
-        Duration::seconds(total_time_sum)
+        Duration::try_seconds(total_time_sum)
+          .unwrap_or_default()
           .hhmmss()
           .bold()
           .underline(),

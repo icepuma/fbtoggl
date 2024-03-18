@@ -392,7 +392,7 @@ fn create_time_entry() -> anyhow::Result<()> {
       &Some("Wurst".to_string()),
       123456789,
       &Some(vec!["aa".to_string(), "bb".to_string()]),
-      Duration::seconds(200),
+      Duration::try_seconds(200).unwrap(),
       DateTime::<Local>::from_str("2021-11-21T23:58:09+01:00")?,
       123456789,
       false,
