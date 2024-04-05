@@ -234,22 +234,13 @@ pub struct Currency {
 #[derive(Deserialize, Serialize, Debug)]
 pub struct ReportTimeEntry {
   pub id: u64,
-  pub user: String,
   pub start: DateTime<Utc>,
-  pub end: DateTime<Utc>,
-  pub dur: u64,
+  pub stop: DateTime<Utc>,
+  pub seconds: u64,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct ReportDetails {
-  pub total_grand: Option<u64>,
-  pub total_billable: Option<u64>,
-
-  #[serde(default)]
-  pub total_currencies: Vec<Currency>,
-
-  pub total_count: u64,
-  pub per_page: u64,
-
-  pub data: Vec<ReportTimeEntry>,
+  pub username: String,
+  pub time_entries: Vec<ReportTimeEntry>,
 }

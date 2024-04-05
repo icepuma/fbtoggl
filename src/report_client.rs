@@ -11,6 +11,8 @@ use minreq::Method;
 use minreq::Request;
 use minreq::Response;
 use serde::de::DeserializeOwned;
+use serde::Serialize;
+use serde_json::json;
 use url::Url;
 
 pub struct TogglReportClient {
@@ -30,7 +32,7 @@ pub fn init_report_client() -> anyhow::Result<TogglReportClient> {
 
 impl TogglReportClient {
   pub fn new(api_token: String) -> anyhow::Result<TogglReportClient> {
-    let base_url = "https://api.track.toggl.com/reports/api/v2/".parse()?;
+    let base_url = "https://api.track.toggl.com/reports/api/v3/".parse()?;
 
     Ok(TogglReportClient {
       base_url,
@@ -41,7 +43,10 @@ impl TogglReportClient {
   fn basic_auth(&self) -> (String, String) {
     (
       AUTHORIZATION.to_string(),
-      STANDARD.encode(format!("{}:api_token", &self.api_token)),
+      format!(
+        "Basic {}",
+        STANDARD.encode(format!("{}:api_token", &self.api_token))
+      ),
     )
   }
 
@@ -53,23 +58,32 @@ impl TogglReportClient {
     Ok(minreq::Request::new(method, url).with_header(key, value))
   }
 
-  fn empty_request_with_body<D: DeserializeOwned + Debug>(
+  fn request_with_body<D: DeserializeOwned + Debug, S: Serialize + Debug>(
     &self,
     debug: bool,
     method: Method,
     uri: &str,
-  ) -> anyhow::Result<D> {
-    let request = self.base_request(method, uri)?;
+    body: S,
+  ) -> anyhow::Result<(Option<u64>, D)> {
+    let request = self.base_request(method, uri)?.with_json(&body)?;
 
     if debug {
       println!("{}", "Request:".bold().underline());
       println!("{request:?}");
       println!();
+      println!("{:?}", &body);
+      println!();
     }
 
     let response = request.send()?;
 
-    self.response(debug, response)
+    let next_id = response
+      .headers
+      .get("x-next-row-number")
+      .map(|value| value.to_string())
+      .and_then(|value| value.parse::<u64>().ok());
+
+    self.response(debug, response).map(|body| (next_id, body))
   }
 
   fn response<D: DeserializeOwned + Debug>(
@@ -107,19 +121,19 @@ impl TogglReportClient {
     debug: bool,
     workspace_id: u64,
     range: &Range,
-    page: u64,
-  ) -> anyhow::Result<ReportDetails> {
+    first_row_number: Option<u64>,
+  ) -> anyhow::Result<(Option<u64>, Vec<ReportDetails>)> {
     let (start, end) = range.as_range()?;
 
-    let uri = format!(
-      "details?workspace_id={}&user_agent={}&page={}&since={}&until={}",
-      &workspace_id,
-      urlencoding::encode(CREATED_WITH),
-      &page,
-      start.naive_local().format("%Y-%m-%d"),
-      end.naive_local().format("%Y-%m-%d"),
-    );
+    let uri = format!("workspace/{workspace_id}/search/time_entries");
 
-    self.empty_request_with_body(debug, Method::Get, &uri)
+    let body = json!({
+      "start_date": start.naive_local().format("%Y-%m-%d").to_string(),
+      "created_with": CREATED_WITH,
+      "end_date":end.naive_local().format("%Y-%m-%d").to_string(),
+      "first_row_number": first_row_number,
+    });
+
+    self.request_with_body(debug, Method::Post, &uri, body)
   }
 }

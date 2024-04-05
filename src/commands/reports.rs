@@ -22,31 +22,37 @@ pub fn detailed(
 ) -> anyhow::Result<()> {
   let me = client.get_me(debug)?;
 
-  let mut time_entries = vec![];
+  let mut report_details = vec![];
 
-  let details =
-    report_client.details(debug, me.default_workspace_id, range, 1)?;
+  let (next_row_number, details) =
+    report_client.details(debug, me.default_workspace_id, range, None)?;
 
-  for time_entry in details.data {
-    time_entries.push(time_entry);
+  for detail in details {
+    report_details.push(detail);
   }
 
-  let total_count = details.total_count;
-  let pages = (total_count as f64 / 50.0).ceil() as u64;
+  let mut outer_next_row_number = next_row_number;
 
-  for page in 2..=pages {
-    let details =
-      report_client.details(debug, me.default_workspace_id, range, page)?;
+  while let Some(inner_next_row_number) = outer_next_row_number {
+    let (inner_next_row_number, details) = report_client.details(
+      debug,
+      me.default_workspace_id,
+      range,
+      Some(inner_next_row_number),
+    )?;
 
-    for time_entry in details.data {
-      time_entries.push(time_entry);
+    for detail in details {
+      report_details.push(detail);
     }
+
+    outer_next_row_number = inner_next_row_number;
   }
 
   println!("Range: {range}");
 
-  let time_entries_by_user =
-    time_entries.iter().into_group_map_by(|a| a.user.to_owned());
+  let time_entries_by_user = report_details
+    .iter()
+    .into_group_map_by(|a| a.username.to_owned());
 
   if time_entries_by_user.is_empty() {
     println!();
@@ -55,15 +61,27 @@ pub fn detailed(
     return Ok(());
   }
 
-  for (user, time_entries) in time_entries_by_user {
-    let total_hours = time_entries
-      .iter()
-      .flat_map(|time_entry| Duration::try_milliseconds(time_entry.dur as i64))
-      .fold(Duration::zero(), |a, b| a + b);
+  for (user, details) in time_entries_by_user {
+    let mut total_seconds = Duration::zero();
+
+    for detail in &details {
+      for time_entry in &detail.time_entries {
+        total_seconds += Duration::try_seconds(time_entry.seconds as i64)
+          .unwrap_or(Duration::zero());
+      }
+    }
 
     println!();
-    println!("{} - {}", user, formatted_duration(total_hours));
+    println!("{} - {}", user, formatted_duration(total_seconds));
     println!();
+
+    let mut time_entries = vec![];
+
+    for detail in &details {
+      for time_entry in &detail.time_entries {
+        time_entries.push(time_entry);
+      }
+    }
 
     let time_entries_by_date = time_entries
       .iter()
@@ -77,9 +95,7 @@ pub fn detailed(
 
       let hours = time_entries
         .iter()
-        .flat_map(|time_entry| {
-          Duration::try_milliseconds(time_entry.dur as i64)
-        })
+        .flat_map(|time_entry| Duration::try_seconds(time_entry.seconds as i64))
         .fold(Duration::zero(), |a, b| a + b);
 
       let start = time_entries
@@ -89,8 +105,8 @@ pub fn detailed(
 
       let end = time_entries
         .iter()
-        .max_by_key(|time_entry| time_entry.end)
-        .map(|time_entry| DateTime::<Local>::from(time_entry.end));
+        .max_by_key(|time_entry| time_entry.stop)
+        .map(|time_entry| DateTime::<Local>::from(time_entry.stop));
 
       let r#break = if let (Some(start), Some(end)) = (start, end) {
         let total = end - start;
@@ -128,24 +144,24 @@ pub fn detailed(
           && r#break < Duration::try_minutes(30).unwrap()
         {
           warnings.push(
-            format!(
-              "Worked for {hours_formatted} => break should be at least 30 minutes!"
-            )
-            .red()
-            .to_string(),
-          );
+              format!(
+                "Worked for {hours_formatted} => break should be at least 30 minutes!"
+              )
+              .red()
+              .to_string(),
+            );
         }
         // more than 9 hours, break has to be at least 45 minutes
         else if hours > Duration::try_hours(9).unwrap()
           && r#break < Duration::try_minutes(45).unwrap()
         {
           warnings.push(
-            format!(
-              "Worked for {hours_formatted} => break should be at least 45 minutes!"
-            )
-            .red()
-            .to_string(),
-          );
+              format!(
+                "Worked for {hours_formatted} => break should be at least 45 minutes!"
+              )
+              .red()
+              .to_string(),
+            );
         }
 
         format!(", Break: {}", formatted_duration(r#break))

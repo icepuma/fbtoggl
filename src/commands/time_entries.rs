@@ -427,7 +427,7 @@ fn output_values_raw(output_entries: &[OutputEntry]) {
 fn output_values_table(output_entries: &[OutputEntry]) {
   let time_entry_buckets = output_entries
     .iter()
-    .group_by(|e| &e.date)
+    .chunk_by(|e| &e.date)
     .into_iter()
     .map(|(date, group)| (date, group.collect()))
     .collect::<Vec<(&NaiveDate, Vec<&OutputEntry>)>>();
