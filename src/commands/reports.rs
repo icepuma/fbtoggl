@@ -72,7 +72,12 @@ pub fn detailed(
     }
 
     println!();
-    println!("{} - {}", user, formatted_duration(total_seconds));
+    println!(
+      "{} - {} hours ({})",
+      user,
+      total_seconds.num_hours(),
+      formatted_duration(total_seconds)
+    );
     println!();
 
     let mut time_entries = vec![];
