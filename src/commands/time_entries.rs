@@ -361,9 +361,9 @@ fn output_time_entry_table(time_entry: &TimeEntry) {
   table.add_row(Row::new(vec![
     TableCell::new(time_entry.id),
     TableCell::new(time_entry.start),
-    TableCell::new(&time_entry.description.to_owned().unwrap_or_default()),
+    TableCell::new(time_entry.description.to_owned().unwrap_or_default()),
     TableCell::new(
-      &time_entry
+      time_entry
         .tags
         .as_ref()
         .map(|tags| tags.join(", "))
@@ -502,15 +502,14 @@ fn output_values_table(output_entries: &[OutputEntry]) {
           TableCell::new(&entry.project),
           TableCell::new(&entry.client),
           TableCell::new(&entry.description),
-          TableCell::new_with_alignment(
-            if entry.billable {
-              "$".bold().green()
-            } else {
-              "$".bold().red()
-            },
-            1,
-            Alignment::Center,
-          ),
+          TableCell::builder(if entry.billable {
+            "$".bold().green()
+          } else {
+            "$".bold().red()
+          })
+          .col_span(1)
+          .alignment(Alignment::Center)
+          .build(),
         ]);
 
         table.add_row(entry_row);
