@@ -1,7 +1,7 @@
 use crate::{
   cli::{
-    output_values_json, CreateTimeEntry, DeleteTimeEntry, Format,
-    StartTimeEntry, StopTimeEntry,
+    CreateTimeEntry, DeleteTimeEntry, Format, StartTimeEntry, StopTimeEntry,
+    output_values_json,
   },
   client::TogglClient,
   model::{Client, Project, Range, TimeEntry, Workspace},
@@ -13,7 +13,7 @@ use hhmmss::Hhmmss;
 use itertools::Itertools;
 use std::{collections::HashMap, ops::Div};
 use term_table::{
-  row::Row, table_cell::Alignment, table_cell::TableCell, Table, TableStyle,
+  Table, TableStyle, row::Row, table_cell::Alignment, table_cell::TableCell,
 };
 
 struct OutputEntry {
