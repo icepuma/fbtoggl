@@ -12,22 +12,22 @@ pub struct Settings {
 }
 
 pub fn init_settings_file() -> anyhow::Result<()> {
-  let xdg_dirs = xdg::BaseDirectories::with_prefix(APP_NAME)?;
-  let settings_file = xdg_dirs.get_config_file("settings.toml");
+  let xdg_dirs = xdg::BaseDirectories::with_prefix(APP_NAME);
 
-  if settings_file.exists() {
+  // Check if config file already exists
+  if let Some(existing_file) = xdg_dirs.find_config_file("settings.toml") {
     if Confirm::new()
       .with_prompt("Override settings.toml file?")
       .interact()?
     {
-      println!("Override settings file {settings_file:?}");
-
-      write_config_file(&settings_file)?;
+      println!("Override settings file {existing_file:?}");
+      write_config_file(&existing_file)?;
     } else {
       println!("Do nothing!");
     }
   } else {
-    xdg_dirs.place_config_file(&settings_file)?;
+    // Create new config file
+    let settings_file = xdg_dirs.place_config_file("settings.toml")?;
     write_config_file(&settings_file)?;
   }
 
@@ -51,8 +51,13 @@ fn write_config_file(path: &Path) -> anyhow::Result<()> {
 }
 
 pub fn read_settings() -> anyhow::Result<Settings> {
-  let xdg_dirs = xdg::BaseDirectories::with_prefix(APP_NAME)?;
-  let settings_file = xdg_dirs.get_config_file("settings.toml");
+  let xdg_dirs = xdg::BaseDirectories::with_prefix(APP_NAME);
+  let settings_file =
+    xdg_dirs.find_config_file("settings.toml").ok_or_else(|| {
+      anyhow::anyhow!(
+        "Settings file not found. Run 'fbtoggl init' to create one."
+      )
+    })?;
 
   let settings = Config::builder()
     .add_source(config::File::from(settings_file))
