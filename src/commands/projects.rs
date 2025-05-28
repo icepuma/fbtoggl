@@ -1,8 +1,8 @@
 use colored::Colorize;
-use term_table::{row::Row, table_cell::TableCell, Table, TableStyle};
+use term_table::{Table, TableStyle, row::Row, table_cell::TableCell};
 
 use crate::{
-  cli::{output_values_json, Format},
+  cli::{Format, output_values_json},
   client::TogglClient,
   model::Project,
 };

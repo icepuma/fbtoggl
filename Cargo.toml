@@ -1,7 +1,7 @@
 [package]
 name = "fbtoggl"
 version = "2025.4.18"
-edition = "2021"
+edition = "2024"
 authors = ["Stefan Ruzitschka <stefan@icepuma.dev>"]
 description = "Terminal client to interact with track.toggl.com REST api."
 keywords = ["toggl", "track", "time-tracking", "cli", "productivity"]

@@ -4,14 +4,14 @@ use crate::config::read_settings;
 use crate::model::Range;
 use crate::model::ReportDetails;
 use anyhow::anyhow;
-use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
+use base64::engine::general_purpose::STANDARD;
 use colored::Colorize;
 use minreq::Method;
 use minreq::Request;
 use minreq::Response;
-use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 use serde_json::json;
 use url::Url;
 

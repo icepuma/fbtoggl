@@ -1,27 +1,31 @@
 use crate::{
   cli::CreateTimeEntry,
-  client::{TogglClient, CREATED_WITH},
+  client::{CREATED_WITH, TogglClient},
   commands::time_entries::calculate_duration,
   commands::time_entries::create,
 };
 use chrono::{DateTime, Duration, Local};
 use mockito::Matcher;
 use pretty_assertions::assert_eq;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::str::FromStr;
 
 #[ctor::ctor]
 fn setup() {
-  std::env::set_var("RUST_LOG", "mockito=debug");
-  std::env::set_var("TZ", "Europe/Berlin");
+  unsafe {
+    std::env::set_var("RUST_LOG", "mockito=debug");
+    std::env::set_var("TZ", "Europe/Berlin");
+  }
 
   let _ = env_logger::try_init();
 }
 
 #[ctor::dtor]
 fn teardown() {
-  std::env::remove_var("RUST_LOG");
-  std::env::remove_var("TZ");
+  unsafe {
+    std::env::remove_var("RUST_LOG");
+    std::env::remove_var("TZ");
+  }
 }
 
 #[test]

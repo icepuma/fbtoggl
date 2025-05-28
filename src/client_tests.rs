@@ -1,5 +1,5 @@
 use crate::{
-  client::{TogglClient, CREATED_WITH},
+  client::{CREATED_WITH, TogglClient},
   model::Range,
 };
 use chrono::{DateTime, Duration, Local, NaiveDate};
@@ -10,16 +10,20 @@ use std::str::FromStr;
 
 #[ctor::ctor]
 fn setup() {
-  std::env::set_var("RUST_LOG", "mockito=debug");
-  std::env::set_var("TZ", "Europe/Berlin");
+  unsafe {
+    std::env::set_var("RUST_LOG", "mockito=debug");
+    std::env::set_var("TZ", "Europe/Berlin");
+  }
 
   let _ = env_logger::try_init();
 }
 
 #[ctor::dtor]
 fn teardown() {
-  std::env::remove_var("RUST_LOG");
-  std::env::remove_var("TZ");
+  unsafe {
+    std::env::remove_var("RUST_LOG");
+    std::env::remove_var("TZ");
+  }
 }
 
 #[test]
