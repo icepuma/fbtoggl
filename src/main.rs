@@ -1,3 +1,8 @@
+//! fbtoggl - A terminal client for the Toggl Track API
+//!
+//! This application provides a command-line interface to interact with
+//! Toggl Track's time tracking service.
+
 use crate::cli::{Clients, Options, SubCommand, TimeEntries};
 use crate::config::init_settings_file;
 use clap::Parser;
@@ -8,9 +13,14 @@ use report_client::init_report_client;
 mod cli;
 mod client;
 mod commands;
+mod common;
 mod config;
+mod error;
+mod http_client;
 mod model;
+mod output;
 mod report_client;
+mod types;
 
 #[cfg(test)]
 mod client_tests;
@@ -46,7 +56,7 @@ fn main() -> anyhow::Result<()> {
     SubCommand::TimeEntries(action) => match action {
       TimeEntries::Create(time_entry) => {
         let client = init_client()?;
-        commands::time_entries::create(debug, &format, &time_entry, &client)?
+        commands::time_entries::create(debug, &format, &time_entry, &client)?;
       }
       TimeEntries::List(list_time_entries) => {
         let client = init_client()?;
@@ -56,26 +66,30 @@ fn main() -> anyhow::Result<()> {
           &list_time_entries.range,
           list_time_entries.missing,
           &client,
-        )?
+        )?;
       }
       TimeEntries::Start(time_entry) => {
         let client = init_client()?;
-        commands::time_entries::start(debug, &format, &time_entry, &client)?
+        commands::time_entries::start(debug, &format, &time_entry, &client)?;
       }
       TimeEntries::Stop(time_entry) => {
         let client = init_client()?;
-        commands::time_entries::stop(debug, &format, &time_entry, &client)?
+        commands::time_entries::stop(debug, &format, &time_entry, &client)?;
       }
       TimeEntries::Delete(time_entry) => {
         let client = init_client()?;
-        commands::time_entries::delete(debug, &format, &time_entry, &client)?
+        commands::time_entries::delete(debug, &format, &time_entry, &client)?;
+      }
+      TimeEntries::Details(time_entry) => {
+        let client = init_client()?;
+        commands::time_entries::details(debug, &format, &time_entry, &client)?;
       }
     },
 
     SubCommand::Clients(action) => match action {
       Clients::Create(create_client) => {
         let client = init_client()?;
-        commands::clients::create(debug, &format, &create_client, &client)?
+        commands::clients::create(debug, &format, &create_client, &client)?;
       }
       Clients::List(list_clients) => {
         let client = init_client()?;

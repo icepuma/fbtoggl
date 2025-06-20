@@ -20,7 +20,7 @@ pub fn init_settings_file() -> anyhow::Result<()> {
       .with_prompt("Override settings.toml file?")
       .interact()?
     {
-      println!("Override settings file {existing_file:?}");
+      println!("Override settings file {}", existing_file.display());
       write_config_file(&existing_file)?;
     } else {
       println!("Do nothing!");
@@ -45,7 +45,7 @@ fn write_config_file(path: &Path) -> anyhow::Result<()> {
 
   std::fs::write(path, content)?;
 
-  println!("Wrote settings file to {path:?}");
+  println!("Wrote settings file to {}", path.display());
 
   Ok(())
 }
@@ -55,7 +55,7 @@ pub fn read_settings() -> anyhow::Result<Settings> {
   let settings_file =
     xdg_dirs.find_config_file("settings.toml").ok_or_else(|| {
       anyhow::anyhow!(
-        "Settings file not found. Run 'fbtoggl init' to create one."
+        "Settings file not found. Run 'fbtoggl settings init' to create one."
       )
     })?;
 

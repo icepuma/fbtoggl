@@ -1,4 +1,5 @@
 use crate::model::Range;
+use crate::types::TimeEntryId;
 use chrono::{DateTime, Duration, Local};
 use clap::{Parser, Subcommand, ValueEnum};
 use jackdauer::duration;
@@ -13,6 +14,7 @@ pub struct Options {
   pub format: Format,
 
   /// Show debug information -> log HTTP requests and responses
+  /// WARNING: This will display your API token in the Authorization header!
   #[arg(long)]
   pub debug: bool,
 
@@ -59,7 +61,7 @@ pub enum Settings {
 
 #[derive(Subcommand, Debug)]
 pub enum Reports {
-  /// Detailed report with violations: more than 10 hours, start before 6am, end after 10pm and pause violations (Arbeitszeitgesetz (ArbZG) § 4 Ruhepausen)
+  /// Detailed report with violations: more than 10 hours, start before 6am, end after 10pm and pause violations (Arbeitszeitgesetz (`ArbZG`) § 4 Ruhepausen)
   Detailed(Detailed),
 }
 
@@ -105,6 +107,9 @@ pub enum TimeEntries {
 
   /// Delete time entry
   Delete(DeleteTimeEntry),
+
+  /// Get time entry details
+  Details(TimeEntryDetails),
 }
 
 #[derive(Parser, Debug)]
@@ -161,7 +166,7 @@ pub struct CreateTimeEntry {
   #[arg(long)]
   pub lunch_break: bool,
 
-  /// Start (e.g. 'now', 'today at 6am', 'yesterday at 16:30' '2021-11-30T06:00', '2 hours ago', 'yesterday at 6am') - All possible formats https://github.com/PicoJr/htp/blob/HEAD/src/time.pest
+  /// Start (e.g. 'now', 'today at 6am', 'yesterday at 16:30' '2021-11-30T06:00', '2 hours ago', 'yesterday at 6am') - All possible formats <https://github.com/PicoJr/htp/blob/HEAD/src/time.pest>
   #[arg(
     long,
     default_value = "now",
@@ -169,7 +174,7 @@ pub struct CreateTimeEntry {
   )]
   pub start: DateTime<Local>,
 
-  /// End (e.g. 'now', 'today at 6am', 'yesterday at 16:30' '2021-11-30T06:00', '2 hours ago', 'yesterday at 6am') - All possible formats https://github.com/PicoJr/htp/blob/HEAD/src/time.pest
+  /// End (e.g. 'now', 'today at 6am', 'yesterday at 16:30' '2021-11-30T06:00', '2 hours ago', 'yesterday at 6am') - All possible formats <https://github.com/PicoJr/htp/blob/HEAD/src/time.pest>
   #[arg(
     long,
     value_parser = parse_time,
@@ -205,21 +210,21 @@ pub struct StartTimeEntry {
 pub struct StopTimeEntry {
   /// Id of the time entry
   #[arg(long)]
-  pub id: u64,
+  pub id: TimeEntryId,
 }
 
 #[derive(Parser, Debug)]
 pub struct DeleteTimeEntry {
   /// Id of the time entry
   #[arg(long)]
-  pub id: u64,
+  pub id: TimeEntryId,
 }
 
 #[derive(Parser, Debug)]
 pub struct TimeEntryDetails {
   /// Id of the time entry
   #[arg(long)]
-  pub id: u64,
+  pub id: TimeEntryId,
 }
 
 #[derive(Parser, Debug)]
@@ -238,7 +243,7 @@ pub enum Clients {
   Create(CreateClient),
 }
 
-pub(crate) fn output_values_json<T: Serialize>(values: &[T]) {
+pub fn output_values_json<T: Serialize>(values: &[T]) {
   for value in values {
     if let Ok(output) = serde_json::to_string_pretty(&value) {
       println!("{output}");

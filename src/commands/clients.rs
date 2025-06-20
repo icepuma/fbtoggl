@@ -1,10 +1,7 @@
-use colored::Colorize;
-use term_table::{Table, TableStyle, row::Row, table_cell::TableCell};
-
 use crate::{
   cli::{CreateClient, Format, output_values_json},
   client::TogglClient,
-  model::Client,
+  output::{output_named_entities_raw, output_named_entities_table},
 };
 
 pub fn create(
@@ -23,8 +20,8 @@ pub fn create(
 
   match format {
     Format::Json => output_values_json(&[data]),
-    Format::Raw => output_values_raw(&[data]),
-    Format::Table => output_values_table(&[data]),
+    Format::Raw => output_named_entities_raw(&[data]),
+    Format::Table => output_named_entities_table(&[data], "Name"),
   }
 
   Ok(())
@@ -45,41 +42,12 @@ pub fn list(
   ) {
     match format {
       Format::Json => output_values_json(&clients),
-      Format::Raw => output_values_raw(&clients),
-      Format::Table => output_values_table(&clients),
+      Format::Raw => output_named_entities_raw(&clients),
+      Format::Table => output_named_entities_table(&clients, "Name"),
     }
   } else {
     println!("No entries found!");
   }
 
   Ok(())
-}
-
-fn output_values_raw(values: &[Client]) {
-  for client in values {
-    println!("\"{}\"", client.name);
-  }
-}
-
-fn output_values_table(values: &[Client]) {
-  let mut table = Table::new();
-  table.style = TableStyle::thin();
-
-  let header = Row::new(vec![
-    TableCell::new("ID".bold().white()),
-    TableCell::new("Name".bold().white()),
-  ]);
-
-  table.add_row(header);
-
-  for client in values {
-    let row = Row::new(vec![
-      TableCell::new(client.id),
-      TableCell::new(&client.name),
-    ]);
-
-    table.add_row(row);
-  }
-
-  println!("{}", table.render());
 }

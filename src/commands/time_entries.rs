@@ -1,29 +1,32 @@
 use crate::{
   cli::{
     CreateTimeEntry, DeleteTimeEntry, Format, StartTimeEntry, StopTimeEntry,
-    output_values_json,
+    TimeEntryDetails, output_values_json,
   },
   client::TogglClient,
+  commands::common::find_project_by_name,
   model::{Client, Project, Range, TimeEntry, Workspace},
+  types::{ClientId, ProjectId, TimeEntryId, WorkspaceId},
 };
-use anyhow::anyhow;
+use anyhow::{Context, anyhow};
 use chrono::{DateTime, Duration, Local, NaiveDate};
 use colored::Colorize;
+use core::ops::Div;
 use hhmmss::Hhmmss;
 use itertools::Itertools;
-use std::{collections::HashMap, ops::Div};
+use std::collections::HashMap;
 use term_table::{
   Table, TableStyle, row::Row, table_cell::Alignment, table_cell::TableCell,
 };
 
-struct OutputEntry {
-  id: u64,
+struct OutputEntry<'a> {
+  id: TimeEntryId,
   date: NaiveDate,
   duration: Duration,
-  workspace: String,
-  project: String,
-  client: String,
-  description: String,
+  workspace: &'a str,
+  project: &'a str,
+  client: &'a str,
+  description: &'a str,
   billable: bool,
 }
 
@@ -34,7 +37,9 @@ pub fn list(
   missing: bool,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
-  let mut time_entries = client.get_time_entries(debug, range)?;
+  let mut time_entries = client
+    .get_time_entries(debug, range)
+    .context("Failed to fetch time entries from Toggl")?;
 
   if missing {
     let missing_datetimes = if time_entries.is_empty() {
@@ -79,7 +84,12 @@ pub fn list(
     let projects = client.get_workspace_projects(debug, false, workspace_id)?;
     let clients = client
       .get_workspace_clients(debug, false, workspace_id)?
-      .unwrap_or_default();
+      .unwrap_or_else(|| {
+        if debug {
+          println!("No clients found for workspace {workspace_id}");
+        }
+        Vec::new()
+      });
 
     let output_entries = collect_output_entries(
       &mut time_entries,
@@ -98,26 +108,26 @@ pub fn list(
   Ok(())
 }
 
-fn collect_output_entries(
-  values: &mut [TimeEntry],
-  workspaces: &[Workspace],
-  projects: &[Project],
-  clients: &[Client],
-) -> Vec<OutputEntry> {
+fn collect_output_entries<'a>(
+  values: &'a mut [TimeEntry],
+  workspaces: &'a [Workspace],
+  projects: &'a [Project],
+  clients: &'a [Client],
+) -> Vec<OutputEntry<'a>> {
   let workspace_lookup = workspaces
     .iter()
     .map(|workspace| (workspace.id, workspace))
-    .collect::<HashMap<u64, &Workspace>>();
+    .collect::<HashMap<WorkspaceId, &Workspace>>();
 
   let project_lookup = projects
     .iter()
     .map(|project| (project.id, project))
-    .collect::<HashMap<u64, &Project>>();
+    .collect::<HashMap<ProjectId, &Project>>();
 
   let client_lookup = clients
     .iter()
     .map(|client| (client.id, client))
-    .collect::<HashMap<u64, &Client>>();
+    .collect::<HashMap<ClientId, &Client>>();
 
   let mut output_entries = vec![];
 
@@ -140,23 +150,21 @@ fn collect_output_entries(
       id: entry.id,
       date: entry.start.date_naive(),
       duration,
-      workspace: maybe_workspace
-        .map(|w| w.name.to_owned())
-        .unwrap_or_else(|| "-".to_string()),
-      project: maybe_project
-        .map(|p| p.name.to_owned())
-        .unwrap_or_else(|| "-".to_string()),
-      client: maybe_client
-        .map(|c| c.name.to_owned())
-        .unwrap_or_else(|| "-".to_string()),
-      description: entry.description.to_owned().unwrap_or_default(),
+      workspace: maybe_workspace.map_or("-", |w| w.name.as_str()),
+      project: maybe_project.map(|p| p.name.as_str()).unwrap_or("-"),
+      client: maybe_client.map_or("-", |c| c.name.as_str()),
+      description: entry.description.as_deref().unwrap_or(""),
       billable: entry.billable.unwrap_or_default(),
-    })
+    });
   }
 
   output_entries
 }
 
+#[allow(
+  clippy::arithmetic_side_effects,
+  reason = "Date and duration arithmetic is necessary for time entry creation"
+)]
 pub fn create(
   debug: bool,
   format: &Format,
@@ -167,12 +175,7 @@ pub fn create(
   let workspace_id = me.default_workspace_id;
   let projects = client.get_workspace_projects(debug, false, workspace_id)?;
 
-  let project = projects
-    .iter()
-    .find(|project| project.name == time_entry.project)
-    .ok_or_else(|| {
-      anyhow!(format!("Cannot find project='{}'", time_entry.project))
-    })?;
+  let project = find_project_by_name(&projects, &time_entry.project)?;
 
   let duration = calculate_duration(time_entry)?;
 
@@ -182,22 +185,22 @@ pub fn create(
 
     client.create_time_entry(
       debug,
-      &time_entry.description,
+      time_entry.description.as_ref(),
       workspace_id,
-      &time_entry.tags,
+      time_entry.tags.as_ref(),
       duration,
       start,
       project.id,
       time_entry.non_billable,
     )?;
 
-    let new_start = start + launch_break() + duration;
+    let new_start = start + lunch_break() + duration;
 
     client.create_time_entry(
       debug,
-      &time_entry.description,
+      time_entry.description.as_ref(),
       workspace_id,
-      &time_entry.tags,
+      time_entry.tags.as_ref(),
       duration,
       new_start,
       project.id,
@@ -206,9 +209,9 @@ pub fn create(
   } else {
     client.create_time_entry(
       debug,
-      &time_entry.description,
+      time_entry.description.as_ref(),
       workspace_id,
-      &time_entry.tags,
+      time_entry.tags.as_ref(),
       duration,
       time_entry.start,
       project.id,
@@ -221,10 +224,14 @@ pub fn create(
   Ok(())
 }
 
-fn launch_break() -> Duration {
-  Duration::try_hours(1).unwrap()
+const fn lunch_break() -> Duration {
+  Duration::hours(1)
 }
 
+#[allow(
+  clippy::arithmetic_side_effects,
+  reason = "Duration calculations are necessary for time entry logic"
+)]
 pub(super) fn calculate_duration(
   time_entry: &CreateTimeEntry,
 ) -> anyhow::Result<Duration> {
@@ -253,10 +260,19 @@ pub(super) fn calculate_duration(
   }
 }
 
+#[allow(
+  clippy::arithmetic_side_effects,
+  reason = "Duration subtraction is safe after checking duration > lunch"
+)]
 fn calculate_duration_with_lunch_break(
   duration: Duration,
 ) -> anyhow::Result<Duration> {
-  let duration_with_lunch_break = duration - launch_break();
+  let lunch = lunch_break();
+  let duration_with_lunch_break = if duration > lunch {
+    duration - lunch
+  } else {
+    return Err(anyhow!("Duration minus lunch break is <= 0"));
+  };
 
   if duration_with_lunch_break <= Duration::zero() {
     Err(anyhow!("Duration minus lunch break is <= 0"))
@@ -275,19 +291,14 @@ pub fn start(
   let workspace_id = me.default_workspace_id;
   let projects = client.get_workspace_projects(debug, false, workspace_id)?;
 
-  let project = projects
-    .iter()
-    .find(|project| project.name == time_entry.project)
-    .ok_or_else(|| {
-      anyhow!(format!("Cannot find project='{}'", time_entry.project))
-    })?;
+  let project = find_project_by_name(&projects, &time_entry.project)?;
 
   let started_time_entry = client.start_time_entry(
     debug,
     chrono::Local::now(),
     workspace_id,
-    &time_entry.description,
-    &time_entry.tags,
+    time_entry.description.as_ref(),
+    time_entry.tags.as_ref(),
     project.id,
     time_entry.non_billable,
   )?;
@@ -330,12 +341,42 @@ pub fn delete(
   Ok(())
 }
 
+pub fn details(
+  debug: bool,
+  format: &Format,
+  time_entry: &TimeEntryDetails,
+  client: &TogglClient,
+) -> anyhow::Result<()> {
+  let entry = client.get_time_entry(debug, time_entry.id)?;
+
+  let workspaces = client.get_workspaces(debug)?;
+  let me = client.get_me(debug)?;
+  let workspace_id = me.default_workspace_id;
+
+  let projects = client.get_workspace_projects(debug, false, workspace_id)?;
+  let clients = client
+    .get_workspace_clients(debug, false, workspace_id)?
+    .unwrap_or_default();
+
+  let mut entries = vec![entry];
+  let output_entries =
+    collect_output_entries(&mut entries, &workspaces, &projects, &clients);
+
+  match format {
+    Format::Json => output_values_json(&entries),
+    Format::Raw => output_values_raw(&output_entries),
+    Format::Table => output_values_table(&output_entries),
+  }
+
+  Ok(())
+}
+
 fn output_time_entry_raw(time_entry: &TimeEntry) {
   println!(
     "{}\t{}\t{}\t{}",
     &time_entry.id,
     &time_entry.start,
-    &time_entry.description.to_owned().unwrap_or_default(),
+    &time_entry.description.clone().unwrap_or_default(),
     &time_entry
       .tags
       .as_ref()
@@ -361,7 +402,7 @@ fn output_time_entry_table(time_entry: &TimeEntry) {
   table.add_row(Row::new(vec![
     TableCell::new(time_entry.id),
     TableCell::new(time_entry.start),
-    TableCell::new(time_entry.description.to_owned().unwrap_or_default()),
+    TableCell::new(time_entry.description.clone().unwrap_or_default()),
     TableCell::new(
       time_entry
         .tags
@@ -398,10 +439,10 @@ fn output_missing_days_raw(missing_datetimes: &[DateTime<Local>]) {
   }
 }
 
-fn output_values_raw(output_entries: &[OutputEntry]) {
+fn output_values_raw(output_entries: &[OutputEntry<'_>]) {
   for entry in output_entries {
     let duration_text = if entry.duration.is_zero() {
-      "running ".to_string()
+      "running ".to_owned()
     } else {
       entry.duration.hhmmss()
     };
@@ -424,7 +465,11 @@ fn output_values_raw(output_entries: &[OutputEntry]) {
   }
 }
 
-fn output_values_table(output_entries: &[OutputEntry]) {
+#[allow(
+  clippy::too_many_lines,
+  reason = "This function handles complex table formatting - splitting would reduce readability"
+)]
+fn output_values_table(output_entries: &[OutputEntry<'_>]) {
   let time_entry_buckets = output_entries
     .iter()
     .chunk_by(|e| &e.date)
@@ -432,7 +477,9 @@ fn output_values_table(output_entries: &[OutputEntry]) {
     .map(|(date, group)| (date, group.collect()))
     .collect::<Vec<(&NaiveDate, Vec<&OutputEntry>)>>();
 
-  if !time_entry_buckets.is_empty() {
+  if time_entry_buckets.is_empty() {
+    println!("No entries found");
+  } else {
     let mut table = Table::new();
     table.style = TableStyle::thin();
     table.separate_rows = false;
@@ -461,13 +508,13 @@ fn output_values_table(output_entries: &[OutputEntry]) {
       TableCell::new(""),
     ]));
 
-    let mut total_time_sum = 0;
+    let mut total_time_sum: i64 = 0;
 
     for (date, entries) in time_entry_buckets {
       let time_sum: i64 =
         entries.iter().map(|e| e.duration.num_seconds()).sum();
 
-      total_time_sum += time_sum;
+      total_time_sum = total_time_sum.saturating_add(time_sum);
 
       let date_row = Row::new(vec![
         TableCell::new(date.to_string().bold()),
@@ -498,10 +545,10 @@ fn output_values_table(output_entries: &[OutputEntry]) {
           TableCell::new(""),
           TableCell::new(duration_text),
           TableCell::new(entry.id),
-          TableCell::new(&entry.workspace),
-          TableCell::new(&entry.project),
-          TableCell::new(&entry.client),
-          TableCell::new(&entry.description),
+          TableCell::new(entry.workspace),
+          TableCell::new(entry.project),
+          TableCell::new(entry.client),
+          TableCell::new(entry.description),
           TableCell::builder(if entry.billable {
             "$".bold().green()
           } else {
@@ -543,7 +590,5 @@ fn output_values_table(output_entries: &[OutputEntry]) {
     table.add_row(total_sum_row);
 
     println!("{}", table.render());
-  } else {
-    println!("No entries found");
   }
 }
