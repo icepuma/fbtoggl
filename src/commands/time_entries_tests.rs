@@ -1,14 +1,19 @@
+#![allow(
+  clippy::unreadable_literal,
+  reason = "JSON test data contains literal numbers that are more readable without separators"
+)]
+#![allow(clippy::unwrap_used, reason = "Test code can panic on failure")]
+
 use crate::{
-  cli::CreateTimeEntry,
-  client::{CREATED_WITH, TogglClient},
-  commands::time_entries::calculate_duration,
-  commands::time_entries::create,
+  cli::CreateTimeEntry, client::TogglClient,
+  commands::time_entries::calculate_duration, commands::time_entries::create,
+  common::CREATED_WITH,
 };
 use chrono::{DateTime, Duration, Local};
+use core::str::FromStr;
 use mockito::Matcher;
 use pretty_assertions::assert_eq;
 use serde_json::{Value, json};
-use std::str::FromStr;
 
 #[ctor::ctor]
 fn setup() {
@@ -29,9 +34,13 @@ fn teardown() {
 }
 
 #[test]
+#[allow(
+  clippy::too_many_lines,
+  reason = "Comprehensive test case covering all duration calculation scenarios"
+)]
 fn test_calculate_duration() -> anyhow::Result<()> {
   let time_entry_with_duration_but_without_end = CreateTimeEntry {
-    project: "fkbr".to_string(),
+    project: "fkbr".to_owned(),
     start: DateTime::<Local>::from_str("2021-11-21T22:58:09Z")?,
     end: None,
     duration: Some(Duration::try_hours(2).unwrap()),
@@ -47,7 +56,7 @@ fn test_calculate_duration() -> anyhow::Result<()> {
   );
 
   let time_entry_without_duration_but_with_end = CreateTimeEntry {
-    project: "fkbr".to_string(),
+    project: "fkbr".to_owned(),
     start: DateTime::<Local>::from_str("2021-11-21T10:58:09Z")?,
     end: Some(DateTime::<Local>::from_str("2021-11-21T12:58:09Z")?),
     duration: None,
@@ -63,7 +72,7 @@ fn test_calculate_duration() -> anyhow::Result<()> {
   );
 
   let time_entry_without_duration_and_without_end = CreateTimeEntry {
-    project: "fkbr".to_string(),
+    project: "fkbr".to_owned(),
     start: DateTime::<Local>::from_str("2021-11-21T10:58:09Z")?,
     end: None,
     duration: None,
@@ -77,12 +86,12 @@ fn test_calculate_duration() -> anyhow::Result<()> {
     calculate_duration(&time_entry_without_duration_and_without_end)
       .unwrap_err()
       .to_string(),
-    "Please use either --duration or --end".to_string()
+    "Please use either --duration or --end".to_owned()
   );
 
   let time_entry_with_duration_but_without_end_and_lunch_break =
     CreateTimeEntry {
-      project: "fkbr".to_string(),
+      project: "fkbr".to_owned(),
       start: DateTime::<Local>::from_str("2021-11-21T10:58:09Z")?,
       end: Some(DateTime::<Local>::from_str("2021-11-21T12:58:09Z")?),
       duration: None,
@@ -101,7 +110,7 @@ fn test_calculate_duration() -> anyhow::Result<()> {
 
   let time_entry_with_duration_but_without_end_and_lunch_break =
     CreateTimeEntry {
-      project: "fkbr".to_string(),
+      project: "fkbr".to_owned(),
       start: DateTime::<Local>::from_str("2021-11-21T22:58:09Z")?,
       end: None,
       duration: Duration::try_hours(2),
@@ -119,7 +128,7 @@ fn test_calculate_duration() -> anyhow::Result<()> {
   );
 
   let time_entry_with_start_is_the_same_as_end = CreateTimeEntry {
-    project: "fkbr".to_string(),
+    project: "fkbr".to_owned(),
     start: DateTime::<Local>::from_str("2021-11-21T22:58:09Z")?,
     end: Some(DateTime::<Local>::from_str("2021-11-21T22:58:09Z")?),
     duration: None,
@@ -135,11 +144,11 @@ fn test_calculate_duration() -> anyhow::Result<()> {
     )
     .unwrap_err()
     .to_string(),
-    "start='2021-11-21 23:58:09 +01:00' is greater or equal than end='2021-11-21 23:58:09 +01:00'".to_string()
+    "start='2021-11-21 23:58:09 +01:00' is greater or equal than end='2021-11-21 23:58:09 +01:00'".to_owned()
   );
 
   let time_entry_with_start_is_after_end = CreateTimeEntry {
-    project: "fkbr".to_string(),
+    project: "fkbr".to_owned(),
     start: DateTime::<Local>::from_str("2021-11-21T23:58:09Z")?,
     end: Some(DateTime::<Local>::from_str("2021-11-21T22:58:09Z")?),
     duration: None,
@@ -153,11 +162,11 @@ fn test_calculate_duration() -> anyhow::Result<()> {
     calculate_duration(&time_entry_with_start_is_after_end)
       .unwrap_err()
       .to_string(),
-    "start='2021-11-22 00:58:09 +01:00' is greater or equal than end='2021-11-21 23:58:09 +01:00'".to_string()
+    "start='2021-11-22 00:58:09 +01:00' is greater or equal than end='2021-11-21 23:58:09 +01:00'".to_owned()
   );
 
   let time_entry_where_lunch_break_is_longer_than_duration = CreateTimeEntry {
-    project: "fkbr".to_string(),
+    project: "fkbr".to_owned(),
     start: DateTime::<Local>::from_str("2021-11-21T10:58:09Z")?,
     end: Some(DateTime::<Local>::from_str("2021-11-21T11:58:09Z")?),
     duration: None,
@@ -171,13 +180,17 @@ fn test_calculate_duration() -> anyhow::Result<()> {
     calculate_duration(&time_entry_where_lunch_break_is_longer_than_duration)
       .unwrap_err()
       .to_string(),
-    "Duration minus lunch break is <= 0".to_string()
+    "Duration minus lunch break is <= 0".to_owned()
   );
 
   Ok(())
 }
 
 #[test]
+#[allow(
+  clippy::significant_drop_tightening,
+  reason = "Test server must remain alive for the duration of the test"
+)]
 fn test_create_workday_with_pause_2_hours() -> anyhow::Result<()> {
   let mut server = mockito::Server::new();
 
@@ -243,7 +256,7 @@ fn test_create_workday_with_pause_2_hours() -> anyhow::Result<()> {
     .create();
 
   let list_entries_mock = server
-    .mock("GET", Matcher::Regex(r"^/me/time_entries.*$".to_string()))
+    .mock("GET", Matcher::Regex(r"^/me/time_entries.*$".to_owned()))
     .with_header(
       "Authorization",
       "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
@@ -255,18 +268,18 @@ fn test_create_workday_with_pause_2_hours() -> anyhow::Result<()> {
 
   {
     let workday_with_pause = CreateTimeEntry {
-      description: Some("fkbr".to_string()),
+      description: Some("fkbr".to_owned()),
       start: DateTime::<Local>::from_str("2021-11-21T22:58:09Z")?,
       end: None,
       duration: Duration::try_hours(2),
       lunch_break: false,
-      project: "betamale gmbh".to_string(),
+      project: "betamale gmbh".to_owned(),
       tags: None,
       non_billable: true,
     };
 
     let client = TogglClient::new_with_base_url(
-      "cb7bf7efa6d652046abd2f7d84ee18c1".to_string(),
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_owned(),
       server.url().parse()?,
     )?;
 
@@ -287,6 +300,14 @@ fn test_create_workday_with_pause_2_hours() -> anyhow::Result<()> {
 }
 
 #[test]
+#[allow(
+  clippy::too_many_lines,
+  reason = "Complex integration test with multiple mock setups"
+)]
+#[allow(
+  clippy::significant_drop_tightening,
+  reason = "Test server must remain alive for the duration of the test"
+)]
 fn test_create_workday_with_pause_7_hours() -> anyhow::Result<()> {
   let mut server = mockito::Server::new();
 
@@ -392,7 +413,7 @@ fn test_create_workday_with_pause_7_hours() -> anyhow::Result<()> {
     .create();
 
   let list_entries_mock = server
-    .mock("GET", Matcher::Regex(r"^/me/time_entries.*$".to_string()))
+    .mock("GET", Matcher::Regex(r"^/me/time_entries.*$".to_owned()))
     .with_header(
       "Authorization",
       "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
@@ -404,18 +425,18 @@ fn test_create_workday_with_pause_7_hours() -> anyhow::Result<()> {
 
   {
     let workday_with_pause = CreateTimeEntry {
-      description: Some("fkbr".to_string()),
+      description: Some("fkbr".to_owned()),
       start: DateTime::<Local>::from_str("2021-11-21T22:58:09+01:00")?,
       end: None,
       duration: Duration::try_hours(7),
       lunch_break: true,
-      project: "betamale gmbh".to_string(),
+      project: "betamale gmbh".to_owned(),
       tags: None,
       non_billable: false,
     };
 
     let client = TogglClient::new_with_base_url(
-      "cb7bf7efa6d652046abd2f7d84ee18c1".to_string(),
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_owned(),
       server.url().parse()?,
     )?;
 

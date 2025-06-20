@@ -8,12 +8,26 @@ use crate::{
   client::TogglClient, model::Range, report_client::TogglReportClient,
 };
 
+// Duration constants to avoid unwrap calls
+const HOURS_6: i64 = 6 * 3600;
+const HOURS_9: i64 = 9 * 3600;
+const MINUTES_30: i64 = 30 * 60;
+const MINUTES_45: i64 = 45 * 60;
+
 fn formatted_duration(duration: Duration) -> String {
   duration
     .to_std()
-    .map_or_else(|_| "".to_string(), |h| format_duration(h).to_string())
+    .map_or_else(|_| String::new(), |h| format_duration(h).to_string())
 }
 
+#[allow(
+  clippy::too_many_lines,
+  reason = "Main function coordinating report generation - splitting would reduce readability"
+)]
+#[allow(
+  clippy::arithmetic_side_effects,
+  reason = "Duration arithmetic is necessary throughout this function for time calculations"
+)]
 pub fn detailed(
   debug: bool,
   client: &TogglClient,
@@ -22,37 +36,13 @@ pub fn detailed(
 ) -> anyhow::Result<()> {
   let me = client.get_me(debug)?;
 
-  let mut report_details = vec![];
-
-  let (next_row_number, details) =
-    report_client.details(debug, me.default_workspace_id, range, None)?;
-
-  for detail in details {
-    report_details.push(detail);
-  }
-
-  let mut outer_next_row_number = next_row_number;
-
-  while let Some(inner_next_row_number) = outer_next_row_number {
-    let (inner_next_row_number, details) = report_client.details(
-      debug,
-      me.default_workspace_id,
-      range,
-      Some(inner_next_row_number),
-    )?;
-
-    for detail in details {
-      report_details.push(detail);
-    }
-
-    outer_next_row_number = inner_next_row_number;
-  }
+  let report_details =
+    report_client.detailed(me.default_workspace_id, range, debug)?;
 
   println!("Range: {range}");
 
-  let time_entries_by_user = report_details
-    .iter()
-    .into_group_map_by(|a| a.username.to_owned());
+  let time_entries_by_user =
+    report_details.iter().into_group_map_by(|a| &a.username);
 
   if time_entries_by_user.is_empty() {
     println!();
@@ -66,8 +56,11 @@ pub fn detailed(
 
     for detail in &details {
       for time_entry in &detail.time_entries {
-        total_seconds += Duration::try_seconds(time_entry.seconds as i64)
-          .unwrap_or(Duration::zero());
+        if let Ok(seconds) = i64::try_from(time_entry.seconds) {
+          if let Some(duration) = Duration::try_seconds(seconds) {
+            total_seconds += duration;
+          }
+        }
       }
     }
 
@@ -96,11 +89,17 @@ pub fn detailed(
     dates.sort();
 
     for date in dates {
-      let time_entries = time_entries_by_date.get(date).unwrap();
+      let time_entries = time_entries_by_date
+        .get(date)
+        .ok_or_else(|| anyhow::anyhow!("Missing time entries for date"))?;
 
       let hours = time_entries
         .iter()
-        .flat_map(|time_entry| Duration::try_seconds(time_entry.seconds as i64))
+        .filter_map(|time_entry| {
+          i64::try_from(time_entry.seconds)
+            .ok()
+            .and_then(Duration::try_seconds)
+        })
         .fold(Duration::zero(), |a, b| a + b);
 
       let start = time_entries
@@ -142,11 +141,14 @@ pub fn detailed(
       let hours_formatted = formatted_duration(hours);
 
       // https://www.gesetze-im-internet.de/arbzg/__4.html#:~:text=Arbeitszeitgesetz%20(ArbZG),neun%20Stunden%20insgesamt%20zu%20unterbrechen.
+      #[allow(
+        clippy::option_if_let_else,
+        reason = "Complex if-let with multiple conditions is more readable than map_or_else"
+      )]
       let formatted_break = if let Some(r#break) = r#break {
-        // between 6 and less than 10 hours, break has to be at least 30 minutes
-        if (hours > Duration::try_hours(6).unwrap()
-          && hours < Duration::try_hours(10).unwrap())
-          && r#break < Duration::try_minutes(30).unwrap()
+        // between 6 and up to 9 hours, break has to be at least 30 minutes
+        if (hours.num_seconds() > HOURS_6 && hours.num_seconds() <= HOURS_9)
+          && r#break.num_seconds() < MINUTES_30
         {
           warnings.push(
               format!(
@@ -157,8 +159,8 @@ pub fn detailed(
             );
         }
         // more than 9 hours, break has to be at least 45 minutes
-        else if hours > Duration::try_hours(9).unwrap()
-          && r#break < Duration::try_minutes(45).unwrap()
+        else if hours.num_seconds() > HOURS_9
+          && r#break.num_seconds() < MINUTES_45
         {
           warnings.push(
               format!(
@@ -171,13 +173,13 @@ pub fn detailed(
 
         format!(", Break: {}", formatted_duration(r#break))
       } else {
-        "".to_string()
+        String::new()
       };
 
-      let formatted_warnings = if !warnings.is_empty() {
-        format!(" | {}", warnings.join(", ").bold())
+      let formatted_warnings = if warnings.is_empty() {
+        String::new()
       } else {
-        "".to_string()
+        format!(" | {}", warnings.join(", ").bold())
       };
 
       println!(

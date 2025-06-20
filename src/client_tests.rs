@@ -1,12 +1,24 @@
+#![allow(
+  clippy::unreadable_literal,
+  reason = "JSON test data contains literal numbers that are more readable without separators"
+)]
+#![allow(clippy::unwrap_used, reason = "Test code can panic on failure")]
+#![allow(
+  clippy::significant_drop_tightening,
+  reason = "Test server must remain alive for the duration of tests"
+)]
+
 use crate::{
-  client::{CREATED_WITH, TogglClient},
+  client::TogglClient,
+  common::CREATED_WITH,
   model::Range,
+  types::{ClientId, ProjectId, TimeEntryId, WorkspaceId},
 };
 use chrono::{DateTime, Duration, Local, NaiveDate};
+use core::str::FromStr;
 use mockito::Matcher;
 use pretty_assertions::assert_eq;
 use serde_json::json;
-use std::str::FromStr;
 
 #[ctor::ctor]
 fn setup() {
@@ -49,13 +61,13 @@ fn get_me() -> anyhow::Result<()> {
 
   {
     let client = TogglClient::new_with_base_url(
-      "cb7bf7efa6d652046abd2f7d84ee18c1".to_string(),
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_owned(),
       server.url().parse()?,
     )?;
 
     let me = client.get_me(false)?;
 
-    assert_eq!(me.default_workspace_id, 1234567);
+    assert_eq!(me.default_workspace_id, WorkspaceId(1234567));
   }
 
   mock.assert();
@@ -105,14 +117,14 @@ fn get_workspaces() -> anyhow::Result<()> {
 
   {
     let client = TogglClient::new_with_base_url(
-      "cb7bf7efa6d652046abd2f7d84ee18c1".to_string(),
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_owned(),
       server.url().parse()?,
     )?;
 
     let workspaces = client.get_workspaces(false)?;
     let first_workspace = workspaces.first().unwrap();
 
-    assert_eq!(first_workspace.id, 1234567);
+    assert_eq!(first_workspace.id, WorkspaceId(1234567));
     assert_eq!(first_workspace.name, "Ralph Bower Workspace");
   }
 
@@ -157,20 +169,20 @@ fn get_workspace_clients() -> anyhow::Result<()> {
 
   {
     let client = TogglClient::new_with_base_url(
-      "cb7bf7efa6d652046abd2f7d84ee18c1".to_string(),
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_owned(),
       server.url().parse()?,
     )?;
 
     let clients = client
-      .get_workspace_clients(false, false, 12345678)?
+      .get_workspace_clients(false, false, WorkspaceId(12345678))?
       .unwrap_or_default();
     let first_client = clients.first().unwrap();
     let second_client = clients.get(1).unwrap();
 
-    assert_eq!(first_client.id, 1234);
+    assert_eq!(first_client.id, ClientId(1234));
     assert_eq!(first_client.name, "fkbr.org");
 
-    assert_eq!(second_client.id, 2345);
+    assert_eq!(second_client.id, ClientId(2345));
     assert_eq!(second_client.name, "beta male gmbh");
   }
 
@@ -237,20 +249,21 @@ fn get_workspace_projects() -> anyhow::Result<()> {
 
   {
     let client = TogglClient::new_with_base_url(
-      "cb7bf7efa6d652046abd2f7d84ee18c1".to_string(),
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_owned(),
       server.url().parse()?,
     )?;
 
-    let projects = client.get_workspace_projects(false, false, 12345678)?;
+    let projects =
+      client.get_workspace_projects(false, false, WorkspaceId(12345678))?;
     let first_project = projects.first().unwrap();
     let second_project = projects.get(1).unwrap();
 
-    assert_eq!(first_project.id, 123456789);
-    assert_eq!(first_project.wid, 1234567);
+    assert_eq!(first_project.id, ProjectId(123456789));
+    assert_eq!(first_project.wid, WorkspaceId(1234567));
     assert_eq!(first_project.name, "beta male gmbh");
 
-    assert_eq!(second_project.id, 987654321);
-    assert_eq!(second_project.wid, 1234567);
+    assert_eq!(second_project.id, ProjectId(987654321));
+    assert_eq!(second_project.wid, WorkspaceId(1234567));
     assert_eq!(second_project.name, "fkbr.org");
   }
 
@@ -312,7 +325,7 @@ fn get_time_entries() -> anyhow::Result<()> {
 
   {
     let client = TogglClient::new_with_base_url(
-      "cb7bf7efa6d652046abd2f7d84ee18c1".to_string(),
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_owned(),
       server.url().parse()?,
     )?;
 
@@ -323,13 +336,13 @@ fn get_time_entries() -> anyhow::Result<()> {
     let first_time_entry = time_entries.first().unwrap();
     let second_time_entry = time_entries.get(1).unwrap();
 
-    assert_eq!(first_time_entry.id, 123456789);
-    assert_eq!(first_time_entry.wid, 1234567);
-    assert_eq!(first_time_entry.description, Some("Wurst".to_string()));
+    assert_eq!(first_time_entry.id, TimeEntryId(123456789));
+    assert_eq!(first_time_entry.wid, WorkspaceId(1234567));
+    assert_eq!(first_time_entry.description, Some("Wurst".to_owned()));
 
-    assert_eq!(second_time_entry.id, 987654321);
-    assert_eq!(second_time_entry.wid, 1234567);
-    assert_eq!(second_time_entry.description, Some("Kaese".to_string()));
+    assert_eq!(second_time_entry.id, TimeEntryId(987654321));
+    assert_eq!(second_time_entry.wid, WorkspaceId(1234567));
+    assert_eq!(second_time_entry.description, Some("Kaese".to_owned()));
   }
 
   mock.assert();
@@ -387,18 +400,18 @@ fn create_time_entry() -> anyhow::Result<()> {
 
   {
     let client = TogglClient::new_with_base_url(
-      "cb7bf7efa6d652046abd2f7d84ee18c1".to_string(),
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_owned(),
       server.url().parse()?,
     )?;
 
     let created_time_entry = client.create_time_entry(
       false,
-      &Some("Wurst".to_string()),
-      123456789,
-      &Some(vec!["aa".to_string(), "bb".to_string()]),
+      Some("Wurst".to_owned()).as_ref(),
+      WorkspaceId(123456789),
+      Some(vec!["aa".to_owned(), "bb".to_owned()]).as_ref(),
       Duration::try_seconds(200).unwrap(),
       DateTime::<Local>::from_str("2021-11-21T23:58:09+01:00")?,
-      123456789,
+      ProjectId(123456789),
       false,
     )?;
 
@@ -408,9 +421,9 @@ fn create_time_entry() -> anyhow::Result<()> {
     );
     assert_eq!(
       created_time_entry.tags,
-      Some(vec!["aa".to_string(), "bb".to_string()])
+      Some(vec!["aa".to_owned(), "bb".to_owned()])
     );
-    assert_eq!(created_time_entry.description, Some("Wurst".to_string()));
+    assert_eq!(created_time_entry.description, Some("Wurst".to_owned()));
   }
 
   mock.assert();
@@ -453,11 +466,12 @@ fn create_client() -> anyhow::Result<()> {
 
   {
     let client = TogglClient::new_with_base_url(
-      "cb7bf7efa6d652046abd2f7d84ee18c1".to_string(),
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_owned(),
       server.url().parse()?,
     )?;
 
-    let created_client = client.create_client(false, "fkbr.org", 123456789)?;
+    let created_client =
+      client.create_client(false, "fkbr.org", WorkspaceId(123456789))?;
 
     assert_eq!(created_client.name, "fkbr.org");
   }
@@ -512,21 +526,21 @@ fn test_start_time_entry() -> anyhow::Result<()> {
 
   {
     let client = TogglClient::new_with_base_url(
-      "cb7bf7efa6d652046abd2f7d84ee18c1".to_string(),
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_owned(),
       server.url().parse()?,
     )?;
 
     let started_time_entry = client.start_time_entry(
       false,
       DateTime::<Local>::from_str("2021-11-21T23:58:09+01:00")?,
-      123456,
-      &Some("fkbr".to_string()),
-      &Some(vec!["a".to_string(), "b".to_string()]),
-      123,
+      WorkspaceId(123456),
+      Some("fkbr".to_owned()).as_ref(),
+      Some(vec!["a".to_owned(), "b".to_owned()]).as_ref(),
+      ProjectId(123),
       true,
     )?;
 
-    assert_eq!(started_time_entry.id, 123456789);
+    assert_eq!(started_time_entry.id, TimeEntryId(123456789));
   }
 
   mock.assert();
@@ -564,13 +578,14 @@ fn test_stop_time_entry() -> anyhow::Result<()> {
 
   {
     let client = TogglClient::new_with_base_url(
-      "cb7bf7efa6d652046abd2f7d84ee18c1".to_string(),
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_owned(),
       server.url().parse()?,
     )?;
 
-    let started_time_entry = client.stop_time_entry(false, 456, 123)?;
+    let started_time_entry =
+      client.stop_time_entry(false, WorkspaceId(456), TimeEntryId(123))?;
 
-    assert_eq!(started_time_entry.id, 123);
+    assert_eq!(started_time_entry.id, TimeEntryId(123));
   }
 
   mock.assert();
@@ -594,11 +609,11 @@ fn test_delete_time_entry() -> anyhow::Result<()> {
 
   {
     let client = TogglClient::new_with_base_url(
-      "cb7bf7efa6d652046abd2f7d84ee18c1".to_string(),
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_owned(),
       server.url().parse()?,
     )?;
 
-    let deleted_time_entry = client.delete_time_entry(false, 456);
+    let deleted_time_entry = client.delete_time_entry(false, TimeEntryId(456));
 
     assert_eq!(deleted_time_entry.is_ok(), true);
   }
