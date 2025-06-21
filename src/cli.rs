@@ -2,8 +2,10 @@ use crate::model::Range;
 use crate::types::TimeEntryId;
 use chrono::{DateTime, Duration, Local};
 use clap::{Parser, Subcommand, ValueEnum};
+use clap_complete::{Generator, Shell, generate};
 use jackdauer::duration;
 use serde::Serialize;
+use std::io;
 
 pub const APP_NAME: &str = "fbtoggl";
 
@@ -18,8 +20,12 @@ pub struct Options {
   #[arg(long)]
   pub debug: bool,
 
+  /// Generate shell completions
+  #[arg(long, value_enum)]
+  pub completions: Option<Shell>,
+
   #[clap(subcommand)]
-  pub subcommand: SubCommand,
+  pub subcommand: Option<SubCommand>,
 }
 
 #[derive(Debug, Clone, ValueEnum)]
@@ -53,7 +59,7 @@ pub enum SubCommand {
   Reports(Reports),
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, Clone, Copy)]
 pub enum Settings {
   /// Initialize settings
   Init,
@@ -249,4 +255,8 @@ pub fn output_values_json<T: Serialize>(values: &[T]) {
       println!("{output}");
     }
   }
+}
+
+pub fn print_completions<G: Generator>(generator: G, cmd: &mut clap::Command) {
+  generate(generator, cmd, cmd.get_name().to_owned(), &mut io::stdout());
 }

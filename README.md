@@ -21,7 +21,19 @@ Interact with track.toggl.com via terminal.
 
 ## Shell completions
 
-WIP
+Generate shell completions for your shell:
+
+```bash
+# Bash
+fbtoggl --completions bash > ~/.local/share/bash-completion/completions/fbtoggl
+
+# Zsh
+fbtoggl --completions zsh > ~/.zfunc/_fbtoggl
+# Add to ~/.zshrc: fpath=(~/.zfunc $fpath)
+
+# Fish
+fbtoggl --completions fish > ~/.config/fish/completions/fbtoggl.fish
+```
 
 ## Usage
 
