@@ -5,7 +5,8 @@ use humantime::format_duration;
 use itertools::Itertools;
 
 use crate::{
-  client::TogglClient, model::Range, report_client::TogglReportClient,
+  cli::Format, client::TogglClient, model::Range,
+  report_client::TogglReportClient,
 };
 
 // Duration constants to avoid unwrap calls
@@ -197,6 +198,85 @@ pub fn detailed(
       );
     }
   }
+
+  Ok(())
+}
+
+#[allow(
+  clippy::arithmetic_side_effects,
+  reason = "Duration arithmetic is necessary and safe in this context"
+)]
+#[allow(
+  clippy::cast_precision_loss,
+  clippy::as_conversions,
+  reason = "Converting to f64 for percentage calculations is acceptable here"
+)]
+pub fn summary(
+  debug: bool,
+  client: &TogglClient,
+  range: &Range,
+  _format: &Format,
+) -> anyhow::Result<()> {
+  let time_entries = client.get_time_entries(debug, range)?;
+
+  // Calculate summary statistics
+  let total_duration: Duration = time_entries
+    .iter()
+    .filter_map(|e| e.stop.map(|stop| stop - e.start))
+    .sum();
+
+  let billable_duration: Duration = time_entries
+    .iter()
+    .filter(|e| e.billable.unwrap_or(false))
+    .filter_map(|e| e.stop.map(|stop| stop - e.start))
+    .sum();
+
+  let non_billable_duration = total_duration - billable_duration;
+
+  let entries_count = time_entries.len();
+  let billable_count = time_entries
+    .iter()
+    .filter(|e| e.billable.unwrap_or(false))
+    .count();
+
+  // Group by project
+  let mut project_durations = std::collections::HashMap::new();
+  for entry in &time_entries {
+    if let Some(project_id) = entry.pid {
+      let duration = entry
+        .stop
+        .map(|stop| stop - entry.start)
+        .unwrap_or_default();
+      *project_durations
+        .entry(project_id)
+        .or_insert(Duration::zero()) += duration;
+    }
+  }
+
+  println!("Summary for {range}");
+  println!();
+  println!("Total time: {}", formatted_duration(total_duration));
+  println!(
+    "Billable: {} ({:.1}%)",
+    formatted_duration(billable_duration),
+    (billable_duration.num_seconds() as f64
+      / total_duration.num_seconds() as f64)
+      * 100.0
+  );
+  println!(
+    "Non-billable: {} ({:.1}%)",
+    formatted_duration(non_billable_duration),
+    (non_billable_duration.num_seconds() as f64
+      / total_duration.num_seconds() as f64)
+      * 100.0
+  );
+  println!();
+  println!("Total entries: {entries_count}");
+  println!(
+    "Billable entries: {} ({:.1}%)",
+    billable_count,
+    (billable_count as f64 / entries_count as f64) * 100.0
+  );
 
   Ok(())
 }

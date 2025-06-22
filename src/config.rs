@@ -65,3 +65,12 @@ pub fn read_settings() -> anyhow::Result<Settings> {
 
   Ok(settings.try_deserialize()?)
 }
+
+pub fn get_settings_file() -> anyhow::Result<std::path::PathBuf> {
+  let xdg_dirs = xdg::BaseDirectories::with_prefix(APP_NAME);
+  xdg_dirs.find_config_file("settings.toml").ok_or_else(|| {
+    anyhow::anyhow!(
+      "Settings file not found. Run 'fbtoggl config init' to create one."
+    )
+  })
+}
