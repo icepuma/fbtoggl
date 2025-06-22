@@ -1,6 +1,6 @@
 use crate::{
   cli::{
-    CreateTimeEntry, DeleteTimeEntry, Format, StartTimeEntry, StopTimeEntry,
+    CreateTimeEntry, EditTimeEntry, Format, StartTimeEntry, StopTimeEntry,
     TimeEntryDetails, output_values_json,
   },
   client::TogglClient,
@@ -9,7 +9,7 @@ use crate::{
   types::{ClientId, ProjectId, TimeEntryId, WorkspaceId},
 };
 use anyhow::{Context, anyhow};
-use chrono::{DateTime, Duration, Local, NaiveDate};
+use chrono::{DateTime, Duration, Local, NaiveDate, Utc};
 use colored::Colorize;
 use core::ops::Div;
 use hhmmss::Hhmmss;
@@ -321,7 +321,12 @@ pub fn stop(
   let me = client.get_me(debug)?;
   let workspace_id = me.default_workspace_id;
 
-  client.stop_time_entry(debug, workspace_id, time_entry.id)?;
+  // If ID is provided, use it; otherwise this shouldn't be called
+  if let Some(id) = time_entry.id {
+    client.stop_time_entry(debug, workspace_id, id)?;
+  } else {
+    return Err(anyhow!("No time entry ID provided"));
+  }
 
   list(debug, format, &Range::Today, false, client)?;
 
@@ -331,7 +336,7 @@ pub fn stop(
 pub fn delete(
   debug: bool,
   format: &Format,
-  time_entry: &DeleteTimeEntry,
+  time_entry: TimeEntryDetails,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
   client.delete_time_entry(debug, time_entry.id)?;
@@ -344,7 +349,7 @@ pub fn delete(
 pub fn details(
   debug: bool,
   format: &Format,
-  time_entry: &TimeEntryDetails,
+  time_entry: TimeEntryDetails,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
   let entry = client.get_time_entry(debug, time_entry.id)?;
@@ -366,6 +371,143 @@ pub fn details(
     Format::Json => output_values_json(&entries),
     Format::Raw => output_values_raw(&output_entries),
     Format::Table => output_values_table(&output_entries),
+  }
+
+  Ok(())
+}
+
+pub fn stop_current(
+  debug: bool,
+  format: &Format,
+  client: &TogglClient,
+) -> anyhow::Result<()> {
+  let me = client.get_me(debug)?;
+  let workspace_id = me.default_workspace_id;
+
+  // Get current running timer
+  let current = client.get_current_time_entry(debug)?;
+
+  if let Some(entry) = current {
+    client.stop_time_entry(debug, workspace_id, entry.id)?;
+    println!("Stopped timer: {}", entry.description.unwrap_or_default());
+  } else {
+    println!("No timer is currently running");
+  }
+
+  list(debug, format, &Range::Today, false, client)?;
+
+  Ok(())
+}
+
+pub fn current(
+  debug: bool,
+  format: &Format,
+  client: &TogglClient,
+) -> anyhow::Result<()> {
+  let current = client.get_current_time_entry(debug)?;
+
+  if let Some(entry) = current {
+    match format {
+      Format::Json => output_values_json(&[entry]),
+      Format::Raw => output_time_entry_raw(&entry),
+      Format::Table => output_time_entry_table(&entry),
+    }
+  } else {
+    println!("No timer is currently running");
+  }
+
+  Ok(())
+}
+
+pub fn continue_timer(
+  debug: bool,
+  format: &Format,
+  id: Option<TimeEntryId>,
+  client: &TogglClient,
+) -> anyhow::Result<()> {
+  let me = client.get_me(debug)?;
+  let workspace_id = me.default_workspace_id;
+
+  let entry_to_continue = if let Some(id) = id {
+    // Continue specific entry
+    client.get_time_entry(debug, id)?
+  } else {
+    // Continue last entry
+    let entries = client.get_time_entries(debug, &Range::Today)?;
+    entries
+      .into_iter()
+      .filter(|e| e.stop.is_some())
+      .max_by_key(|e| e.stop)
+      .ok_or_else(|| anyhow!("No completed time entries found today"))?
+  };
+
+  // Start new entry with same details
+  let started = client.start_time_entry(
+    debug,
+    Local::now(),
+    workspace_id,
+    entry_to_continue.description.as_ref(),
+    entry_to_continue.tags.as_ref(),
+    entry_to_continue
+      .pid
+      .ok_or_else(|| anyhow!("Entry has no project"))?,
+    !entry_to_continue.billable.unwrap_or(false),
+  )?;
+
+  match format {
+    Format::Json => output_values_json(&[started]),
+    Format::Raw => output_time_entry_raw(&started),
+    Format::Table => output_time_entry_table(&started),
+  }
+
+  Ok(())
+}
+
+pub fn edit(
+  debug: bool,
+  format: &Format,
+  edit_entry: &EditTimeEntry,
+  client: &TogglClient,
+) -> anyhow::Result<()> {
+  // Get existing entry
+  let mut entry = client.get_time_entry(debug, edit_entry.id)?;
+
+  // Update fields if provided
+  if let Some(ref project_name) = edit_entry.project {
+    let me = client.get_me(debug)?;
+    let workspace_id = me.default_workspace_id;
+    let projects = client.get_workspace_projects(debug, false, workspace_id)?;
+    let project = find_project_by_name(&projects, project_name)?;
+    entry.pid = Some(project.id);
+  }
+
+  if let Some(ref desc) = edit_entry.description {
+    entry.description = Some(desc.clone());
+  }
+
+  if let Some(ref tags) = edit_entry.tags {
+    entry.tags = Some(tags.clone());
+  }
+
+  if let Some(start) = edit_entry.start {
+    entry.start = start.with_timezone(&Utc);
+  }
+
+  if let Some(end) = edit_entry.end {
+    entry.stop = Some(end.with_timezone(&Utc));
+  }
+
+  if edit_entry.toggle_billable {
+    entry.billable = Some(!entry.billable.unwrap_or(false));
+  }
+
+  // Update the entry
+  let updated = client.update_time_entry(debug, edit_entry.id, &entry)?;
+
+  match format {
+    Format::Json => output_values_json(&[updated]),
+    Format::Raw => output_time_entry_raw(&updated),
+    Format::Table => output_time_entry_table(&updated),
   }
 
   Ok(())

@@ -40,7 +40,10 @@ pub struct Project {
   pub id: ProjectId,
   pub name: String,
   pub wid: WorkspaceId,
-  pub status: ProjectStatus,
+  // Some API responses return "status" field
+  pub status: Option<ProjectStatus>,
+  // Some API responses return "active" field
+  pub active: Option<bool>,
   pub cid: Option<ClientId>,
 }
 

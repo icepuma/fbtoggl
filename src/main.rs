@@ -3,10 +3,10 @@
 //! This application provides a command-line interface to interact with
 //! Toggl Track's time tracking service.
 
-use crate::cli::{Clients, Format, Options, SubCommand, TimeEntries};
+use crate::cli::{Format, Options, SubCommand};
 use crate::config::init_settings_file;
+use crate::types::TimeEntryId;
 use clap::{CommandFactory, Parser};
-use cli::{Projects, Reports, Settings};
 use client::init_client;
 use report_client::init_report_client;
 
@@ -28,22 +28,13 @@ mod client_tests;
 fn main() -> anyhow::Result<()> {
   let options = Options::parse();
 
-  // Handle completion generation if requested
-  if let Some(shell) = options.completions {
-    let mut cmd = Options::command();
-    cli::print_completions(shell, &mut cmd);
-    return Ok(());
-  }
-
   let format = options.format;
   let debug = options.debug;
 
   if let Some(subcommand) = options.subcommand {
     execute_subcommand(subcommand, debug, &format)?;
   } else {
-    eprintln!(
-      "Error: A subcommand is required when not generating completions"
-    );
+    eprintln!("Error: A subcommand is required");
     std::process::exit(1);
   }
 
@@ -57,121 +48,233 @@ fn execute_subcommand(
 ) -> anyhow::Result<()> {
   match subcommand {
     SubCommand::Init => init_settings_file()?,
-    SubCommand::Settings(action) => handle_settings(action)?,
-    SubCommand::Projects(action) => handle_projects(action, debug, format)?,
-    SubCommand::Workspaces(_action) => handle_workspaces(debug, format)?,
-    SubCommand::TimeEntries(action) => {
-      handle_time_entries(action, debug, format)?;
+
+    // Time entry commands
+    SubCommand::Start(time_entry) => {
+      handle_time_entry_start(debug, format, &time_entry)?;
     }
-    SubCommand::Clients(action) => handle_clients(action, debug, format)?,
-    SubCommand::Reports(action) => handle_reports(action, debug)?,
+    SubCommand::Stop(stop_entry) => {
+      handle_time_entry_stop(debug, format, &stop_entry)?;
+    }
+    SubCommand::Continue(continue_entry) => {
+      handle_time_entry_continue(debug, format, &continue_entry)?;
+    }
+    SubCommand::Current => handle_time_entry_current(debug, format)?,
+    SubCommand::Add(time_entry) => {
+      handle_time_entry_add(debug, format, &time_entry)?;
+    }
+    SubCommand::Log(list_time_entries) => {
+      handle_time_entry_log(debug, format, &list_time_entries)?;
+    }
+    SubCommand::Show(details) => {
+      handle_time_entry_show(debug, format, details)?;
+    }
+    SubCommand::Edit(edit_entry) => {
+      handle_time_entry_edit(debug, format, &edit_entry)?;
+    }
+    SubCommand::Delete { id } => handle_time_entry_delete(debug, format, id)?,
+
+    // Report commands
+    SubCommand::Report(report_options) => handle_report(debug, report_options)?,
+    SubCommand::Summary(summary_options) => {
+      handle_summary(debug, format, summary_options)?;
+    }
+
+    // Resource management commands
+    SubCommand::Workspace(action) => handle_workspace(debug, format, action)?,
+    SubCommand::Project(action) => handle_project(debug, format, &action)?,
+    SubCommand::Client(action) => handle_client(debug, format, &action)?,
+
+    // Configuration commands
+    SubCommand::Config(action) => handle_config(action)?,
+
+    // Completions command
+    SubCommand::Completions { shell } => {
+      let mut cmd = Options::command();
+      cli::print_completions(shell, &mut cmd);
+    }
   }
   Ok(())
 }
 
-fn handle_settings(action: Settings) -> anyhow::Result<()> {
-  match action {
-    Settings::Init => init_settings_file()?,
-  }
-  Ok(())
+fn handle_time_entry_start(
+  debug: bool,
+  format: &Format,
+  time_entry: &cli::StartTimeEntry,
+) -> anyhow::Result<()> {
+  let client = init_client()?;
+  commands::time_entries::start(debug, format, time_entry, &client)
 }
 
-fn handle_projects(
-  action: Projects,
+fn handle_time_entry_stop(
+  debug: bool,
+  format: &Format,
+  stop_entry: &cli::StopTimeEntry,
+) -> anyhow::Result<()> {
+  let client = init_client()?;
+  if stop_entry.id.is_some() {
+    commands::time_entries::stop(debug, format, stop_entry, &client)
+  } else {
+    commands::time_entries::stop_current(debug, format, &client)
+  }
+}
+
+fn handle_time_entry_continue(
+  debug: bool,
+  format: &Format,
+  continue_entry: &cli::ContinueTimeEntry,
+) -> anyhow::Result<()> {
+  let client = init_client()?;
+  commands::time_entries::continue_timer(
+    debug,
+    format,
+    continue_entry.id,
+    &client,
+  )
+}
+
+fn handle_time_entry_current(
   debug: bool,
   format: &Format,
 ) -> anyhow::Result<()> {
-  match action {
-    Projects::List(list_projects) => {
-      let client = init_client()?;
-      commands::projects::list(
-        debug,
-        list_projects.include_archived,
-        format,
-        &client,
-      )?;
-    }
-  }
-  Ok(())
-}
-
-fn handle_workspaces(debug: bool, format: &Format) -> anyhow::Result<()> {
   let client = init_client()?;
-  commands::workspaces::list(debug, format, &client)?;
-  Ok(())
+  commands::time_entries::current(debug, format, &client)
 }
 
-fn handle_time_entries(
-  action: TimeEntries,
+fn handle_time_entry_add(
   debug: bool,
   format: &Format,
+  time_entry: &cli::CreateTimeEntry,
 ) -> anyhow::Result<()> {
   let client = init_client()?;
-
-  match action {
-    TimeEntries::Create(time_entry) => {
-      commands::time_entries::create(debug, format, &time_entry, &client)?;
-    }
-    TimeEntries::List(list_time_entries) => {
-      commands::time_entries::list(
-        debug,
-        format,
-        &list_time_entries.range,
-        list_time_entries.missing,
-        &client,
-      )?;
-    }
-    TimeEntries::Start(time_entry) => {
-      commands::time_entries::start(debug, format, &time_entry, &client)?;
-    }
-    TimeEntries::Stop(time_entry) => {
-      commands::time_entries::stop(debug, format, &time_entry, &client)?;
-    }
-    TimeEntries::Delete(time_entry) => {
-      commands::time_entries::delete(debug, format, &time_entry, &client)?;
-    }
-    TimeEntries::Details(time_entry) => {
-      commands::time_entries::details(debug, format, &time_entry, &client)?;
-    }
-  }
-  Ok(())
+  commands::time_entries::create(debug, format, time_entry, &client)
 }
 
-fn handle_clients(
-  action: Clients,
+fn handle_time_entry_log(
   debug: bool,
   format: &Format,
+  list_time_entries: &cli::ListTimeEntries,
 ) -> anyhow::Result<()> {
   let client = init_client()?;
-
-  match action {
-    Clients::Create(create_client) => {
-      commands::clients::create(debug, format, &create_client, &client)?;
-    }
-    Clients::List(list_clients) => {
-      commands::clients::list(
-        debug,
-        list_clients.include_archived,
-        format,
-        &client,
-      )?;
-    }
-  }
-  Ok(())
+  commands::time_entries::list(
+    debug,
+    format,
+    &list_time_entries.range,
+    list_time_entries.missing,
+    &client,
+  )
 }
 
-fn handle_reports(action: Reports, debug: bool) -> anyhow::Result<()> {
+fn handle_time_entry_show(
+  debug: bool,
+  format: &Format,
+  details: cli::TimeEntryDetails,
+) -> anyhow::Result<()> {
+  let client = init_client()?;
+  commands::time_entries::details(debug, format, details, &client)
+}
+
+fn handle_time_entry_edit(
+  debug: bool,
+  format: &Format,
+  edit_entry: &cli::EditTimeEntry,
+) -> anyhow::Result<()> {
+  let client = init_client()?;
+  commands::time_entries::edit(debug, format, edit_entry, &client)
+}
+
+fn handle_time_entry_delete(
+  debug: bool,
+  format: &Format,
+  id: TimeEntryId,
+) -> anyhow::Result<()> {
+  let client = init_client()?;
+  let time_entry = cli::TimeEntryDetails { id };
+  commands::time_entries::delete(debug, format, time_entry, &client)
+}
+
+fn handle_report(
+  debug: bool,
+  report_options: cli::ReportOptions,
+) -> anyhow::Result<()> {
+  let client = init_client()?;
+  let report_client = init_report_client()?;
+  commands::reports::detailed(
+    debug,
+    &client,
+    &report_options.range,
+    &report_client,
+  )
+}
+
+fn handle_summary(
+  debug: bool,
+  format: &Format,
+  summary_options: cli::SummaryOptions,
+) -> anyhow::Result<()> {
+  let client = init_client()?;
+  commands::reports::summary(debug, &client, &summary_options.range, format)
+}
+
+fn handle_workspace(
+  debug: bool,
+  format: &Format,
+  action: cli::Workspace,
+) -> anyhow::Result<()> {
+  let client = init_client()?;
   match action {
-    Reports::Detailed(detailed) => {
-      let client = init_client()?;
-      let report_client = init_report_client()?;
-      commands::reports::detailed(
-        debug,
-        &client,
-        &detailed.range,
-        &report_client,
-      )?;
+    cli::Workspace::List => commands::workspaces::list(debug, format, &client),
+  }
+}
+
+fn handle_project(
+  debug: bool,
+  format: &Format,
+  action: &cli::Project,
+) -> anyhow::Result<()> {
+  let client = init_client()?;
+  match action {
+    cli::Project::List { all } => {
+      commands::projects::list(debug, *all, format, &client)
+    }
+    cli::Project::Create {
+      name,
+      client: client_name,
+      billable,
+      color,
+    } => commands::projects::create(
+      debug,
+      format,
+      name,
+      client_name.as_deref(),
+      *billable,
+      color.as_deref(),
+      &client,
+    ),
+  }
+}
+
+fn handle_client(
+  debug: bool,
+  format: &Format,
+  action: &cli::Client,
+) -> anyhow::Result<()> {
+  let client = init_client()?;
+  match action {
+    cli::Client::List { all } => {
+      commands::clients::list(debug, *all, format, &client)
+    }
+    cli::Client::Create { name } => {
+      let create_client = cli::CreateClient { name: name.clone() };
+      commands::clients::create(debug, format, &create_client, &client)
     }
   }
-  Ok(())
+}
+
+fn handle_config(action: cli::Config) -> anyhow::Result<()> {
+  match action {
+    cli::Config::Init => init_settings_file(),
+    cli::Config::Show => commands::config::show(),
+    cli::Config::Set { key, value } => commands::config::set(&key, &value),
+  }
 }

@@ -196,6 +196,36 @@ impl TogglClient {
     self.request_with_body(debug, Method::Post, &uri, body)
   }
 
+  pub fn create_project(
+    &self,
+    debug: bool,
+    name: &str,
+    workspace_id: WorkspaceId,
+    client_id: Option<crate::types::ClientId>,
+    billable: bool,
+    color: Option<&str>,
+  ) -> Result<Project> {
+    let mut body_map = serde_json::Map::new();
+    body_map.insert("name".to_owned(), json!(name));
+    body_map.insert("workspace_id".to_owned(), json!(workspace_id));
+    body_map.insert("active".to_owned(), json!(true));
+    body_map.insert("billable".to_owned(), json!(billable));
+
+    if let Some(cid) = client_id {
+      body_map.insert("client_id".to_owned(), json!(cid));
+    }
+
+    if let Some(color_value) = color {
+      body_map.insert("color".to_owned(), json!(color_value));
+    }
+
+    let body = serde_json::Value::Object(body_map);
+
+    let uri = format!("workspaces/{workspace_id}/projects");
+
+    self.request_with_body(debug, Method::Post, &uri, body)
+  }
+
   #[allow(
     clippy::too_many_arguments,
     reason = "All parameters are necessary for the Toggl API"
@@ -264,5 +294,42 @@ impl TogglClient {
       &format!("me/time_entries/{time_entry_id}"),
     )?;
     Ok(detail.into())
+  }
+
+  pub fn get_current_time_entry(
+    &self,
+    debug: bool,
+  ) -> Result<Option<TimeEntry>> {
+    let result: Option<TimeEntry> =
+      self.request(debug, Method::Get, "me/time_entries/current")?;
+    Ok(result)
+  }
+
+  pub fn update_time_entry(
+    &self,
+    debug: bool,
+    time_entry_id: TimeEntryId,
+    time_entry: &TimeEntry,
+  ) -> Result<TimeEntry> {
+    let me = self.get_me(debug)?;
+    let workspace_id = me.default_workspace_id;
+
+    let body = json!({
+      "billable": time_entry.billable,
+      "description": time_entry.description,
+      "duration": time_entry.duration,
+      "pid": time_entry.pid,
+      "start": time_entry.start,
+      "stop": time_entry.stop,
+      "tags": time_entry.tags,
+      "wid": workspace_id
+    });
+
+    self.request_with_body(
+      debug,
+      Method::Put,
+      &format!("workspaces/{workspace_id}/time_entries/{time_entry_id}"),
+      body,
+    )
   }
 }
