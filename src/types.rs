@@ -55,8 +55,11 @@ impl FromStr for TimeEntryId {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ProjectStatus {
+  Upcoming,
   Active,
+  Ended,
   Archived,
+  Deleted,
 }
 
 // Enum for client status used in API queries

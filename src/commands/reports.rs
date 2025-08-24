@@ -57,10 +57,10 @@ pub fn detailed(
 
     for detail in &details {
       for time_entry in &detail.time_entries {
-        if let Ok(seconds) = i64::try_from(time_entry.seconds) {
-          if let Some(duration) = Duration::try_seconds(seconds) {
-            total_seconds += duration;
-          }
+        if let Ok(seconds) = i64::try_from(time_entry.seconds)
+          && let Some(duration) = Duration::try_seconds(seconds)
+        {
+          total_seconds += duration;
         }
       }
     }
@@ -127,16 +127,16 @@ pub fn detailed(
         warnings.push("More than 10 hours".red().to_string());
       }
 
-      if let Some(start) = start {
-        if start.time().hour() < 6 {
-          warnings.push("Start time is before 6am".red().to_string());
-        }
+      if let Some(start) = start
+        && start.time().hour() < 6
+      {
+        warnings.push("Start time is before 6am".red().to_string());
       }
 
-      if let Some(end) = end {
-        if end.time().hour() > 22 {
-          warnings.push("End time is after 10pm".red().to_string());
-        }
+      if let Some(end) = end
+        && end.time().hour() > 22
+      {
+        warnings.push("End time is after 10pm".red().to_string());
       }
 
       let hours_formatted = formatted_duration(hours);

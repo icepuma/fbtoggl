@@ -56,7 +56,7 @@ multiple_crate_versions = "allow"  # Dependencies may pull in different versions
 cargo_common_metadata = "allow"  # We have the important metadata already
 
 [dependencies]
-base64 = "0.22"
+base64 = "0.22.1"
 minreq = { version = "2", features = [
     "https-rustls-probe",
     "json-using-serde",
@@ -80,8 +80,8 @@ chronoutil = "0.2"
 now = "0.1"
 xdg = "3"
 config = "0.15"
-toml = "0.8"
-dialoguer = "0.11"
+toml = "0.9"
+dialoguer = "0.12"
 urlencoding = "2"
 jackdauer = "0.1"
 term-table = "1"
@@ -94,7 +94,7 @@ url = "2"
 
 [dev-dependencies]
 env_logger = "0.11"
-ctor = "0.4"
+ctor = "0.5"
 pretty_assertions = "1"
 mockito = "1"
 
