@@ -55,6 +55,14 @@ missing_docs_in_private_items = "allow"
 multiple_crate_versions = "allow"  # Dependencies may pull in different versions
 cargo_common_metadata = "allow"  # We have the important metadata already
 
+[[bin]]
+name = "fbtoggl"
+path = "src/main.rs"
+
+[lib]
+name = "fbtoggl"
+path = "src/lib.rs"
+
 [dependencies]
 base64 = "0.22.1"
 minreq = { version = "2.14.1", features = [
