@@ -240,9 +240,7 @@ pub(super) fn calculate_duration(
 
     if start >= end {
       return Err(anyhow!(
-        "start='{}' is greater or equal than end='{}'",
-        start,
-        end
+        "start='{start}' is greater or equal than end='{end}'"
       ));
     }
 

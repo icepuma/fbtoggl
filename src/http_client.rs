@@ -135,13 +135,11 @@ fn handle_response<D: DeserializeOwned + Debug>(
         println!();
         Ok(json)
       }
-      Err(err) => {
-        Err(TogglError::Other(anyhow::anyhow!("JSON error: {}", err)))
-      }
+      Err(err) => Err(TogglError::Other(anyhow::anyhow!("JSON error: {err}"))),
     },
     200 | 201 => response
       .json()
-      .map_err(|e| TogglError::Other(anyhow::anyhow!("JSON error: {}", e))),
+      .map_err(|e| TogglError::Other(anyhow::anyhow!("JSON error: {e}"))),
     status => response.as_str().map_or_else(
       |_| {
         Err(from_status_code(
@@ -223,13 +221,13 @@ impl ResponseExt for Response {
           Ok((json, header_value))
         }
         Err(err) => {
-          Err(TogglError::Other(anyhow::anyhow!("JSON error: {}", err)))
+          Err(TogglError::Other(anyhow::anyhow!("JSON error: {err}")))
         }
       },
       200 | 201 => Ok((
-        self.json().map_err(|e| {
-          TogglError::Other(anyhow::anyhow!("JSON error: {}", e))
-        })?,
+        self
+          .json()
+          .map_err(|e| TogglError::Other(anyhow::anyhow!("JSON error: {e}")))?,
         header_value,
       )),
       status => self.as_str().map_or_else(

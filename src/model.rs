@@ -240,16 +240,12 @@ impl Range {
       Self::FromTo(start_date, end_date) => {
         let start = start_date.and_hms_opt(0, 0, 0).ok_or_else(|| {
           anyhow::anyhow!(
-            "Could not create start datetime from date: {}",
-            start_date
+            "Could not create start datetime from date: {start_date}"
           )
         })?;
 
         let end = end_date.and_hms_opt(0, 0, 0).ok_or_else(|| {
-          anyhow::anyhow!(
-            "Could not create end datetime from date: {}",
-            end_date
-          )
+          anyhow::anyhow!("Could not create end datetime from date: {end_date}")
         })?;
 
         let end = end
@@ -271,10 +267,7 @@ impl Range {
           .with_ymd_and_hms(date.year(), date.month(), date.day(), 0, 0, 0)
           .single()
           .ok_or_else(|| {
-            anyhow::anyhow!(
-              "Could not create start datetime from date: {}",
-              date
-            )
+            anyhow::anyhow!("Could not create start datetime from date: {date}")
           })?;
 
         let end = start
@@ -306,12 +299,12 @@ impl FromStr for Range {
         Some(index) => {
           let start =
             NaiveDate::parse_from_str(&from_to_or_date[..index], "%Y-%m-%d")
-              .map_err(|e| anyhow::anyhow!("Invalid start date: {}", e))?;
+              .map_err(|e| anyhow::anyhow!("Invalid start date: {e}"))?;
           let end = NaiveDate::parse_from_str(
             &from_to_or_date[index + 1..],
             "%Y-%m-%d",
           )
-          .map_err(|e| anyhow::anyhow!("Invalid end date: {}", e))?;
+          .map_err(|e| anyhow::anyhow!("Invalid end date: {e}"))?;
 
           if start > end {
             return Err(anyhow::anyhow!(
@@ -343,12 +336,6 @@ impl Display for Range {
       write!(f, "Invalid range")
     }
   }
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-pub struct Currency {
-  pub currency: Option<String>,
-  pub amount: Option<f64>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]

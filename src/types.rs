@@ -112,7 +112,7 @@ impl TogglDuration {
   pub fn from_seconds(seconds: i64) -> anyhow::Result<Self> {
     chrono::Duration::try_seconds(seconds)
       .map(Self)
-      .ok_or_else(|| anyhow::anyhow!("Invalid duration: {} seconds", seconds))
+      .ok_or_else(|| anyhow::anyhow!("Invalid duration: {seconds} seconds"))
   }
 
   pub const fn as_seconds(&self) -> i64 {

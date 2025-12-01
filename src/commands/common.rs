@@ -12,6 +12,6 @@ pub fn find_project_by_name<'a>(
 
   projects_by_name
     .get(project_name)
-    .ok_or_else(|| anyhow!("Cannot find project='{}'", project_name))
+    .ok_or_else(|| anyhow!("Cannot find project='{project_name}'"))
     .copied()
 }
