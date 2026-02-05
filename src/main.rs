@@ -77,7 +77,7 @@ fn execute_subcommand(
     // Report commands
     SubCommand::Report(report_options) => handle_report(debug, report_options)?,
     SubCommand::Summary(summary_options) => {
-      handle_summary(debug, format, summary_options)?;
+      handle_summary(debug, summary_options)?;
     }
 
     // Resource management commands
@@ -209,11 +209,10 @@ fn handle_report(
 
 fn handle_summary(
   debug: bool,
-  format: &Format,
   summary_options: cli::SummaryOptions,
 ) -> anyhow::Result<()> {
   let client = init_client()?;
-  commands::reports::summary(debug, &client, &summary_options.range, format)
+  commands::reports::summary(debug, &client, &summary_options.range)
 }
 
 fn handle_workspace(

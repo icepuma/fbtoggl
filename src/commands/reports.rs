@@ -5,8 +5,7 @@ use humantime::format_duration;
 use itertools::Itertools;
 
 use crate::{
-  cli::Format, client::TogglClient, model::Range,
-  report_client::TogglReportClient,
+  client::TogglClient, model::Range, report_client::TogglReportClient,
 };
 
 // Duration constants to avoid unwrap calls
@@ -14,6 +13,11 @@ const HOURS_6: i64 = 6 * 3600;
 const HOURS_9: i64 = 9 * 3600;
 const MINUTES_30: i64 = 30 * 60;
 const MINUTES_45: i64 = 45 * 60;
+
+// Working time regulation constants
+const MAX_DAILY_WORK_HOURS: i64 = 10;
+const EARLIEST_START_HOUR: u32 = 6;
+const LATEST_END_HOUR: u32 = 22;
 
 fn formatted_duration(duration: Duration) -> String {
   duration
@@ -74,13 +78,8 @@ pub fn detailed(
     );
     println!();
 
-    let mut time_entries = vec![];
-
-    for detail in &details {
-      for time_entry in &detail.time_entries {
-        time_entries.push(time_entry);
-      }
-    }
+    let time_entries: Vec<_> =
+      details.iter().flat_map(|d| &d.time_entries).collect();
 
     let time_entries_by_date = time_entries
       .iter()
@@ -123,18 +122,18 @@ pub fn detailed(
 
       let mut warnings = vec![];
 
-      if hours.num_hours() > 10 {
+      if hours.num_hours() > MAX_DAILY_WORK_HOURS {
         warnings.push("More than 10 hours".red().to_string());
       }
 
       if let Some(start) = start
-        && start.time().hour() < 6
+        && start.time().hour() < EARLIEST_START_HOUR
       {
         warnings.push("Start time is before 6am".red().to_string());
       }
 
       if let Some(end) = end
-        && end.time().hour() > 22
+        && end.time().hour() > LATEST_END_HOUR
       {
         warnings.push("End time is after 10pm".red().to_string());
       }
@@ -215,7 +214,6 @@ pub fn summary(
   debug: bool,
   client: &TogglClient,
   range: &Range,
-  _format: &Format,
 ) -> anyhow::Result<()> {
   let time_entries = client.get_time_entries(debug, range)?;
 
@@ -256,27 +254,38 @@ pub fn summary(
   println!("Summary for {range}");
   println!();
   println!("Total time: {}", formatted_duration(total_duration));
+
+  let total_seconds = total_duration.num_seconds() as f64;
+  let billable_pct = if total_seconds > 0.0 {
+    (billable_duration.num_seconds() as f64 / total_seconds) * 100.0
+  } else {
+    0.0
+  };
+  let non_billable_pct = if total_seconds > 0.0 {
+    (non_billable_duration.num_seconds() as f64 / total_seconds) * 100.0
+  } else {
+    0.0
+  };
+
   println!(
     "Billable: {} ({:.1}%)",
     formatted_duration(billable_duration),
-    (billable_duration.num_seconds() as f64
-      / total_duration.num_seconds() as f64)
-      * 100.0
+    billable_pct
   );
   println!(
     "Non-billable: {} ({:.1}%)",
     formatted_duration(non_billable_duration),
-    (non_billable_duration.num_seconds() as f64
-      / total_duration.num_seconds() as f64)
-      * 100.0
+    non_billable_pct
   );
   println!();
   println!("Total entries: {entries_count}");
-  println!(
-    "Billable entries: {} ({:.1}%)",
-    billable_count,
+
+  let entries_pct = if entries_count > 0 {
     (billable_count as f64 / entries_count as f64) * 100.0
-  );
+  } else {
+    0.0
+  };
+  println!("Billable entries: {billable_count} ({entries_pct:.1}%)");
 
   Ok(())
 }

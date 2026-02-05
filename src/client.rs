@@ -153,9 +153,9 @@ impl TogglClient {
   pub fn create_time_entry(
     &self,
     debug: bool,
-    description: Option<&String>,
+    description: Option<&str>,
     workspace_id: WorkspaceId,
-    tags: Option<&Vec<String>>,
+    tags: Option<&[String]>,
     duration: Duration,
     start: DateTime<Local>,
     project_id: ProjectId,
@@ -235,8 +235,8 @@ impl TogglClient {
     debug: bool,
     start: DateTime<Local>,
     workspace_id: WorkspaceId,
-    description: Option<&String>,
-    tags: Option<&Vec<String>>,
+    description: Option<&str>,
+    tags: Option<&[String]>,
     project_id: ProjectId,
     non_billable: bool,
   ) -> Result<TimeEntry> {

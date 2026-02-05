@@ -2,14 +2,9 @@ use crate::output::NamedEntity;
 use crate::types::{
   ClientId, ProjectId, ProjectStatus, TimeEntryId, WorkspaceId,
 };
-use chrono::DateTime;
-use chrono::Datelike;
-use chrono::Duration;
-use chrono::Local;
-use chrono::NaiveDate;
-use chrono::TimeZone;
-use chrono::Utc;
-use chrono::Weekday;
+use chrono::{
+  DateTime, Datelike, Duration, Local, NaiveDate, TimeZone, Utc, Weekday,
+};
 use chronoutil::shift_months;
 use core::fmt;
 use core::fmt::Display;
@@ -27,7 +22,7 @@ pub struct Workspace {
 
 impl NamedEntity for Workspace {
   fn id(&self) -> u64 {
-    self.id.0
+    self.id.get()
   }
 
   fn name(&self) -> &str {
@@ -49,7 +44,7 @@ pub struct Project {
 
 impl NamedEntity for Project {
   fn id(&self) -> u64 {
-    self.id.0
+    self.id.get()
   }
 
   fn name(&self) -> &str {
@@ -126,7 +121,7 @@ pub struct Client {
 
 impl NamedEntity for Client {
   fn id(&self) -> u64 {
-    self.id.0
+    self.id.get()
   }
 
   fn name(&self) -> &str {
@@ -325,13 +320,12 @@ impl FromStr for Range {
 impl Display for Range {
   fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
     if let Ok(range) = self.as_range() {
-      let text = format!(
+      write!(
+        f,
         "{} - {}",
         range.0.format("%Y-%m-%d"),
         range.1.format("%Y-%m-%d")
-      );
-
-      write!(f, "{text}")
+      )
     } else {
       write!(f, "Invalid range")
     }

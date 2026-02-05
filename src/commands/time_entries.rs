@@ -70,12 +70,10 @@ pub fn list(
       Format::Raw => output_missing_days_raw(&missing_datetimes),
       Format::Table => output_missing_days_table(&missing_datetimes),
     }
+  } else if time_entries.is_empty() {
+    println!("No entries found!");
+    return Ok(());
   } else {
-    if time_entries.is_empty() {
-      println!("No entries found!");
-      return Ok(());
-    }
-
     let workspaces = client.get_workspaces(debug)?;
     let me = client.get_me(debug)?;
 
@@ -185,9 +183,9 @@ pub fn create(
 
     client.create_time_entry(
       debug,
-      time_entry.description.as_ref(),
+      time_entry.description.as_deref(),
       workspace_id,
-      time_entry.tags.as_ref(),
+      time_entry.tags.as_deref(),
       duration,
       start,
       project.id,
@@ -198,9 +196,9 @@ pub fn create(
 
     client.create_time_entry(
       debug,
-      time_entry.description.as_ref(),
+      time_entry.description.as_deref(),
       workspace_id,
-      time_entry.tags.as_ref(),
+      time_entry.tags.as_deref(),
       duration,
       new_start,
       project.id,
@@ -209,9 +207,9 @@ pub fn create(
   } else {
     client.create_time_entry(
       debug,
-      time_entry.description.as_ref(),
+      time_entry.description.as_deref(),
       workspace_id,
-      time_entry.tags.as_ref(),
+      time_entry.tags.as_deref(),
       duration,
       time_entry.start,
       project.id,
@@ -295,8 +293,8 @@ pub fn start(
     debug,
     chrono::Local::now(),
     workspace_id,
-    time_entry.description.as_ref(),
-    time_entry.tags.as_ref(),
+    time_entry.description.as_deref(),
+    time_entry.tags.as_deref(),
     project.id,
     time_entry.non_billable,
   )?;
@@ -444,8 +442,8 @@ pub fn continue_timer(
     debug,
     Local::now(),
     workspace_id,
-    entry_to_continue.description.as_ref(),
-    entry_to_continue.tags.as_ref(),
+    entry_to_continue.description.as_deref(),
+    entry_to_continue.tags.as_deref(),
     entry_to_continue
       .pid
       .ok_or_else(|| anyhow!("Entry has no project"))?,
@@ -516,7 +514,7 @@ fn output_time_entry_raw(time_entry: &TimeEntry) {
     "{}\t{}\t{}\t{}",
     &time_entry.id,
     &time_entry.start,
-    &time_entry.description.clone().unwrap_or_default(),
+    time_entry.description.as_deref().unwrap_or(""),
     &time_entry
       .tags
       .as_ref()
@@ -542,7 +540,7 @@ fn output_time_entry_table(time_entry: &TimeEntry) {
   table.add_row(Row::new(vec![
     TableCell::new(time_entry.id),
     TableCell::new(time_entry.start),
-    TableCell::new(time_entry.description.clone().unwrap_or_default()),
+    TableCell::new(time_entry.description.as_deref().unwrap_or("")),
     TableCell::new(
       time_entry
         .tags

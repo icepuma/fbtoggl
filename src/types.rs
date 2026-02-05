@@ -3,21 +3,44 @@ use core::str::FromStr;
 use serde::{Deserialize, Serialize};
 
 // Newtype wrappers for IDs to prevent mixing them up
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct WorkspaceId(pub u64);
+macro_rules! define_id_type {
+  ($name:ident) => {
+    #[allow(
+      dead_code,
+      reason = "Constructor and accessor are part of the newtype API"
+    )]
+    impl $name {
+      pub const fn new(value: u64) -> Self {
+        Self(value)
+      }
+
+      pub const fn get(self) -> u64 {
+        self.0
+      }
+    }
+  };
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct ProjectId(pub u64);
+pub struct WorkspaceId(u64);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct ClientId(pub u64);
+pub struct ProjectId(u64);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct TimeEntryId(pub u64);
+pub struct ClientId(u64);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct TimeEntryId(u64);
+
+define_id_type!(WorkspaceId);
+define_id_type!(ProjectId);
+define_id_type!(ClientId);
+define_id_type!(TimeEntryId);
 
 impl fmt::Display for WorkspaceId {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -47,7 +70,7 @@ impl FromStr for TimeEntryId {
   type Err = core::num::ParseIntError;
 
   fn from_str(s: &str) -> Result<Self, Self::Err> {
-    s.parse::<u64>().map(TimeEntryId)
+    s.parse::<u64>().map(Self::new)
   }
 }
 

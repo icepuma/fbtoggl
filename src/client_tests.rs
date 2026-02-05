@@ -67,7 +67,7 @@ fn get_me() -> anyhow::Result<()> {
 
     let me = client.get_me(false)?;
 
-    assert_eq!(me.default_workspace_id, WorkspaceId(1234567));
+    assert_eq!(me.default_workspace_id, WorkspaceId::new(1234567));
   }
 
   mock.assert();
@@ -124,7 +124,7 @@ fn get_workspaces() -> anyhow::Result<()> {
     let workspaces = client.get_workspaces(false)?;
     let first_workspace = workspaces.first().unwrap();
 
-    assert_eq!(first_workspace.id, WorkspaceId(1234567));
+    assert_eq!(first_workspace.id, WorkspaceId::new(1234567));
     assert_eq!(first_workspace.name, "Ralph Bower Workspace");
   }
 
@@ -174,15 +174,15 @@ fn get_workspace_clients() -> anyhow::Result<()> {
     )?;
 
     let clients = client
-      .get_workspace_clients(false, false, WorkspaceId(12345678))?
+      .get_workspace_clients(false, false, WorkspaceId::new(12345678))?
       .unwrap_or_default();
     let first_client = clients.first().unwrap();
     let second_client = clients.get(1).unwrap();
 
-    assert_eq!(first_client.id, ClientId(1234));
+    assert_eq!(first_client.id, ClientId::new(1234));
     assert_eq!(first_client.name, "fkbr.org");
 
-    assert_eq!(second_client.id, ClientId(2345));
+    assert_eq!(second_client.id, ClientId::new(2345));
     assert_eq!(second_client.name, "beta male gmbh");
   }
 
@@ -253,17 +253,20 @@ fn get_workspace_projects() -> anyhow::Result<()> {
       server.url().parse()?,
     )?;
 
-    let projects =
-      client.get_workspace_projects(false, false, WorkspaceId(12345678))?;
+    let projects = client.get_workspace_projects(
+      false,
+      false,
+      WorkspaceId::new(12345678),
+    )?;
     let first_project = projects.first().unwrap();
     let second_project = projects.get(1).unwrap();
 
-    assert_eq!(first_project.id, ProjectId(123456789));
-    assert_eq!(first_project.wid, WorkspaceId(1234567));
+    assert_eq!(first_project.id, ProjectId::new(123456789));
+    assert_eq!(first_project.wid, WorkspaceId::new(1234567));
     assert_eq!(first_project.name, "beta male gmbh");
 
-    assert_eq!(second_project.id, ProjectId(987654321));
-    assert_eq!(second_project.wid, WorkspaceId(1234567));
+    assert_eq!(second_project.id, ProjectId::new(987654321));
+    assert_eq!(second_project.wid, WorkspaceId::new(1234567));
     assert_eq!(second_project.name, "fkbr.org");
   }
 
@@ -336,12 +339,12 @@ fn get_time_entries() -> anyhow::Result<()> {
     let first_time_entry = time_entries.first().unwrap();
     let second_time_entry = time_entries.get(1).unwrap();
 
-    assert_eq!(first_time_entry.id, TimeEntryId(123456789));
-    assert_eq!(first_time_entry.wid, WorkspaceId(1234567));
+    assert_eq!(first_time_entry.id, TimeEntryId::new(123456789));
+    assert_eq!(first_time_entry.wid, WorkspaceId::new(1234567));
     assert_eq!(first_time_entry.description, Some("Wurst".to_owned()));
 
-    assert_eq!(second_time_entry.id, TimeEntryId(987654321));
-    assert_eq!(second_time_entry.wid, WorkspaceId(1234567));
+    assert_eq!(second_time_entry.id, TimeEntryId::new(987654321));
+    assert_eq!(second_time_entry.wid, WorkspaceId::new(1234567));
     assert_eq!(second_time_entry.description, Some("Kaese".to_owned()));
   }
 
@@ -406,12 +409,12 @@ fn create_time_entry() -> anyhow::Result<()> {
 
     let created_time_entry = client.create_time_entry(
       false,
-      Some("Wurst".to_owned()).as_ref(),
-      WorkspaceId(123456789),
-      Some(vec!["aa".to_owned(), "bb".to_owned()]).as_ref(),
+      Some("Wurst"),
+      WorkspaceId::new(123456789),
+      Some(vec!["aa".to_owned(), "bb".to_owned()]).as_deref(),
       Duration::try_seconds(200).unwrap(),
       DateTime::<Local>::from_str("2021-11-21T23:58:09+01:00")?,
-      ProjectId(123456789),
+      ProjectId::new(123456789),
       false,
     )?;
 
@@ -471,7 +474,7 @@ fn create_client() -> anyhow::Result<()> {
     )?;
 
     let created_client =
-      client.create_client(false, "fkbr.org", WorkspaceId(123456789))?;
+      client.create_client(false, "fkbr.org", WorkspaceId::new(123456789))?;
 
     assert_eq!(created_client.name, "fkbr.org");
   }
@@ -533,14 +536,14 @@ fn test_start_time_entry() -> anyhow::Result<()> {
     let started_time_entry = client.start_time_entry(
       false,
       DateTime::<Local>::from_str("2021-11-21T23:58:09+01:00")?,
-      WorkspaceId(123456),
-      Some("fkbr".to_owned()).as_ref(),
-      Some(vec!["a".to_owned(), "b".to_owned()]).as_ref(),
-      ProjectId(123),
+      WorkspaceId::new(123456),
+      Some("fkbr"),
+      Some(vec!["a".to_owned(), "b".to_owned()]).as_deref(),
+      ProjectId::new(123),
       true,
     )?;
 
-    assert_eq!(started_time_entry.id, TimeEntryId(123456789));
+    assert_eq!(started_time_entry.id, TimeEntryId::new(123456789));
   }
 
   mock.assert();
@@ -582,10 +585,13 @@ fn test_stop_time_entry() -> anyhow::Result<()> {
       server.url().parse()?,
     )?;
 
-    let started_time_entry =
-      client.stop_time_entry(false, WorkspaceId(456), TimeEntryId(123))?;
+    let started_time_entry = client.stop_time_entry(
+      false,
+      WorkspaceId::new(456),
+      TimeEntryId::new(123),
+    )?;
 
-    assert_eq!(started_time_entry.id, TimeEntryId(123));
+    assert_eq!(started_time_entry.id, TimeEntryId::new(123));
   }
 
   mock.assert();
@@ -613,7 +619,8 @@ fn test_delete_time_entry() -> anyhow::Result<()> {
       server.url().parse()?,
     )?;
 
-    let deleted_time_entry = client.delete_time_entry(false, TimeEntryId(456));
+    let deleted_time_entry =
+      client.delete_time_entry(false, TimeEntryId::new(456));
 
     assert_eq!(deleted_time_entry.is_ok(), true);
   }
