@@ -80,10 +80,7 @@ pub fn set(key: &str, value: Option<&str>) -> anyhow::Result<()> {
   let mut config: toml::Value = toml::from_str(&contents)?;
 
   if let toml::Value::Table(ref mut table) = config {
-    table.insert(
-      key.to_owned(),
-      toml::Value::String(resolved_value.clone()),
-    );
+    table.insert(key.to_owned(), toml::Value::String(resolved_value.clone()));
   }
 
   let updated_contents = toml::to_string_pretty(&config)?;

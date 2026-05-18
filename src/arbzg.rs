@@ -109,8 +109,8 @@ fn naive_to_berlin(
   minute: u32,
   second: u32,
 ) -> anyhow::Result<DateTime<Tz>> {
-  let naive = day
-    .and_time(NaiveTime::from_hms_opt(hour, minute, second).ok_or_else(
+  let naive =
+    day.and_time(NaiveTime::from_hms_opt(hour, minute, second).ok_or_else(
       || anyhow::anyhow!("invalid time {hour}:{minute}:{second}"),
     )?);
   Berlin
@@ -149,9 +149,7 @@ pub fn total_night_seconds(
 
 /// § 4 S.3: returns `true` if any uninterrupted stretch of work exceeded
 /// 6 hours (gaps shorter than 15 minutes don't count as a Ruhepause).
-pub fn exceeds_consecutive_work_limit(
-  entries: &[&ReportTimeEntry],
-) -> bool {
+pub fn exceeds_consecutive_work_limit(entries: &[&ReportTimeEntry]) -> bool {
   let mut sorted: Vec<&&ReportTimeEntry> = entries.iter().collect();
   sorted.sort_by_key(|e| e.start);
 
@@ -225,7 +223,9 @@ mod tests {
     let s = DateTime::parse_from_rfc3339(start)
       .unwrap()
       .with_timezone(&Utc);
-    let e = DateTime::parse_from_rfc3339(stop).unwrap().with_timezone(&Utc);
+    let e = DateTime::parse_from_rfc3339(stop)
+      .unwrap()
+      .with_timezone(&Utc);
     let secs =
       u64::try_from(datetime_diff(&e, &s).num_seconds().max(0)).unwrap();
     ReportTimeEntry {

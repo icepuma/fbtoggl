@@ -67,7 +67,10 @@ pub fn write_secure(path: &Path, content: &str) -> anyhow::Result<()> {
 
   let tmp = parent.join(format!(
     ".{}.tmp",
-    path.file_name().and_then(|s| s.to_str()).unwrap_or("settings")
+    path
+      .file_name()
+      .and_then(|s| s.to_str())
+      .unwrap_or("settings")
   ));
 
   #[cfg(unix)]

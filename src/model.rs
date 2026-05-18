@@ -174,8 +174,9 @@ impl Range {
         Ok((now.beginning_of_week(), now.end_of_week()))
       }
       Self::LastWeek => {
-        let one_week = Duration::try_weeks(1)
-          .ok_or_else(|| anyhow::anyhow!("Failed to create one-week duration"))?;
+        let one_week = Duration::try_weeks(1).ok_or_else(|| {
+          anyhow::anyhow!("Failed to create one-week duration")
+        })?;
         let now = Local::now()
           .checked_sub_signed(one_week)
           .ok_or_else(|| anyhow::anyhow!("Date arithmetic overflowed"))?;

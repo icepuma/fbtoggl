@@ -6,8 +6,8 @@ use crate::model::Client;
 use crate::model::Me;
 use crate::model::Project;
 use crate::model::Range;
-use crate::model::Workspace;
 use crate::model::TimeEntry;
+use crate::model::Workspace;
 use crate::types::{
   ApiToken, ClientStatusFilter, ProjectId, TimeEntryId, WorkspaceId,
 };

@@ -85,9 +85,10 @@ impl fmt::Display for TogglError {
 impl std::error::Error for TogglError {
   fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
     match self {
-      Self::Timeout(err) | Self::Tls(err) | Self::Network(err) | Self::Protocol(err) => {
-        Some(err)
-      }
+      Self::Timeout(err)
+      | Self::Tls(err)
+      | Self::Network(err)
+      | Self::Protocol(err) => Some(err),
       Self::Json(err) => Some(err),
       Self::Url(err) => Some(err),
       Self::Other(err) => Some(err.as_ref()),
@@ -98,9 +99,7 @@ impl std::error::Error for TogglError {
 
 impl From<minreq::Error> for TogglError {
   fn from(err: minreq::Error) -> Self {
-    use minreq::Error::{
-      AddressNotFound, IoError, RustlsCreateConnection,
-    };
+    use minreq::Error::{AddressNotFound, IoError, RustlsCreateConnection};
 
     match err {
       RustlsCreateConnection(_) => Self::Tls(err),

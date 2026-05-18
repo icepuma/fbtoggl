@@ -9,7 +9,8 @@ use anyhow::anyhow;
 use chrono::{DateTime, Duration, TimeZone};
 
 pub fn checked_add(a: Duration, b: Duration) -> anyhow::Result<Duration> {
-  a.checked_add(&b).ok_or_else(|| anyhow!("duration overflow"))
+  a.checked_add(&b)
+    .ok_or_else(|| anyhow!("duration overflow"))
 }
 
 pub fn checked_sub(a: Duration, b: Duration) -> anyhow::Result<Duration> {

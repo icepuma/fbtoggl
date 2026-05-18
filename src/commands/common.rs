@@ -22,7 +22,12 @@ pub fn find_project_by_name<'a>(
   let needle = project_name.to_lowercase();
   let mut ranked: Vec<(usize, &str)> = projects
     .iter()
-    .map(|p| (levenshtein(&p.name.to_lowercase(), &needle), p.name.as_str()))
+    .map(|p| {
+      (
+        levenshtein(&p.name.to_lowercase(), &needle),
+        p.name.as_str(),
+      )
+    })
     .collect();
   ranked.sort_by_key(|(d, _)| *d);
 
@@ -81,8 +86,7 @@ fn levenshtein(a: &str, b: &str) -> usize {
         .unwrap_or(0)
         .saturating_add(1);
       let ins = curr.last().copied().unwrap_or(0).saturating_add(1);
-      let sub =
-        prev.get(j).copied().unwrap_or(0).saturating_add(cost);
+      let sub = prev.get(j).copied().unwrap_or(0).saturating_add(cost);
       curr.push(del.min(ins).min(sub));
     }
 
