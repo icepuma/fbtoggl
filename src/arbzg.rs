@@ -1,7 +1,7 @@
 //! Arbeitszeitgesetz (`ArbZG`) compliance checks.
 //!
 //! References:
-//! - § 2 (Begriffsbestimmungen): `Nachtzeit` = 23:00–06:00 local time.
+//! - § 2 (Begriffsbestimmungen): `Nachtzeit` = 23:00–06:00 Berlin time.
 //!   `Nachtarbeit` = any entry containing more than 2 hours of `Nachtzeit`.
 //! - § 3 (Arbeitszeit): daily limit 8h, extendable to 10h only if the
 //!   24-week / 6-month average stays at ≤ 8h.
@@ -14,14 +14,14 @@
 //!   stays at ≤ 8h. We can't compute the averaging here, so we surface
 //!   the night-work status as a note.
 //!
-//! Local timezone assumption: all checks operate on `chrono::Local`,
-//! which the user's OS reports. For German employment this should be
-//! Europe/Berlin; running this from another timezone will misclassify
-//! Nachtzeit boundaries.
+//! All checks operate in `Europe/Berlin` time (the statute's reference
+//! TZ), regardless of where this code runs.
 
 use crate::duration_math::datetime_diff;
 use crate::model::ReportTimeEntry;
 use chrono::{DateTime, Days, Local, NaiveDate, NaiveTime, TimeZone};
+use chrono_tz::Europe::Berlin;
+use chrono_tz::Tz;
 
 /// § 4 minimum break-segment length: gaps shorter than this don't reset
 /// the consecutive-work counter (i.e. they don't count as a Ruhepause).
@@ -53,23 +53,23 @@ pub const NACHTARBEIT_THRESHOLD_SECS: i64 = 2 * 3600;
 const NACHTZEIT_START_HOUR: u32 = 23;
 const NACHTZEIT_END_HOUR: u32 = 6;
 
-/// Seconds of an entry that fall within `Nachtzeit` (23:00–06:00 local).
+/// Seconds of an entry that fall within `Nachtzeit` (23:00–06:00 Berlin).
 pub fn entry_night_seconds(entry: &ReportTimeEntry) -> anyhow::Result<i64> {
-  let start_local: DateTime<Local> = entry.start.into();
-  let stop_local: DateTime<Local> = entry.stop.into();
+  let start_berlin: DateTime<Tz> = entry.start.with_timezone(&Berlin);
+  let stop_berlin: DateTime<Tz> = entry.stop.with_timezone(&Berlin);
 
-  if stop_local <= start_local {
+  if stop_berlin <= start_berlin {
     return Ok(0);
   }
 
   let mut total: i64 = 0;
-  let mut day = start_local.date_naive();
-  let last_day = stop_local.date_naive();
+  let mut day = start_berlin.date_naive();
+  let last_day = stop_berlin.date_naive();
 
   loop {
     for (h0, h1) in night_windows_for(day)? {
       total = total
-        .checked_add(overlap_seconds(start_local, stop_local, h0, h1))
+        .checked_add(overlap_seconds(start_berlin, stop_berlin, h0, h1))
         .ok_or_else(|| anyhow::anyhow!("night-overlap sum overflow"))?;
     }
 
@@ -84,15 +84,15 @@ pub fn entry_night_seconds(entry: &ReportTimeEntry) -> anyhow::Result<i64> {
   Ok(total)
 }
 
-/// Two Nachtzeit windows that touch the given calendar day:
+/// Two Nachtzeit windows that touch the given calendar day in Berlin:
 /// `[D 00:00, D 06:00)` and `[D 23:00, (D+1) 00:00)`.
 fn night_windows_for(
   day: NaiveDate,
-) -> anyhow::Result<[(DateTime<Local>, DateTime<Local>); 2]> {
-  let midnight = naive_to_local(day, 0, 0, 0)?;
-  let six_am = naive_to_local(day, NACHTZEIT_END_HOUR, 0, 0)?;
-  let eleven_pm = naive_to_local(day, NACHTZEIT_START_HOUR, 0, 0)?;
-  let next_midnight = naive_to_local(
+) -> anyhow::Result<[(DateTime<Tz>, DateTime<Tz>); 2]> {
+  let midnight = naive_to_berlin(day, 0, 0, 0)?;
+  let six_am = naive_to_berlin(day, NACHTZEIT_END_HOUR, 0, 0)?;
+  let eleven_pm = naive_to_berlin(day, NACHTZEIT_START_HOUR, 0, 0)?;
+  let next_midnight = naive_to_berlin(
     day
       .checked_add_days(Days::new(1))
       .ok_or_else(|| anyhow::anyhow!("date overflow building night window"))?,
@@ -103,27 +103,27 @@ fn night_windows_for(
   Ok([(midnight, six_am), (eleven_pm, next_midnight)])
 }
 
-fn naive_to_local(
+fn naive_to_berlin(
   day: NaiveDate,
   hour: u32,
   minute: u32,
   second: u32,
-) -> anyhow::Result<DateTime<Local>> {
+) -> anyhow::Result<DateTime<Tz>> {
   let naive = day
     .and_time(NaiveTime::from_hms_opt(hour, minute, second).ok_or_else(
       || anyhow::anyhow!("invalid time {hour}:{minute}:{second}"),
     )?);
-  Local
+  Berlin
     .from_local_datetime(&naive)
     .single()
-    .ok_or_else(|| anyhow::anyhow!("ambiguous or non-existent local time on {day} {hour}:{minute}:{second} (DST?)"))
+    .ok_or_else(|| anyhow::anyhow!("ambiguous or non-existent Berlin time on {day} {hour}:{minute}:{second} (DST?)"))
 }
 
 fn overlap_seconds(
-  a_start: DateTime<Local>,
-  a_end: DateTime<Local>,
-  b_start: DateTime<Local>,
-  b_end: DateTime<Local>,
+  a_start: DateTime<Tz>,
+  a_end: DateTime<Tz>,
+  b_start: DateTime<Tz>,
+  b_end: DateTime<Tz>,
 ) -> i64 {
   let s = a_start.max(b_start);
   let e = a_end.min(b_end);

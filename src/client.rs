@@ -15,6 +15,7 @@ use anyhow::Context;
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::Local;
+use chrono::Utc;
 use minreq::Method;
 use serde_json::json;
 use url::Url;
@@ -314,13 +315,15 @@ fn build_time_entry_body(
   project_id: ProjectId,
   billable: bool,
 ) -> serde_json::Value {
+  // Normalize to UTC so the serialized form is stable regardless of the
+  // machine's local timezone — keeps tests and Toggl's storage canonical.
   json!({
     "billable": billable,
     "created_with": CREATED_WITH,
     "description": description,
     "duration": duration_seconds,
     "project_id": project_id,
-    "start": start,
+    "start": start.with_timezone(&Utc),
     "tags": tags,
     "workspace_id": workspace_id,
   })
