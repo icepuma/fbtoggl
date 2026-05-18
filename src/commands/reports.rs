@@ -240,7 +240,7 @@ pub fn summary(
   // Group by project
   let mut project_durations = std::collections::HashMap::new();
   for entry in &time_entries {
-    if let Some(project_id) = entry.pid {
+    if let Some(project_id) = entry.project_id {
       let duration = entry
         .stop
         .map(|stop| stop - entry.start)

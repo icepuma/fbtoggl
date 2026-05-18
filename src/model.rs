@@ -34,12 +34,10 @@ impl NamedEntity for Workspace {
 pub struct Project {
   pub id: ProjectId,
   pub name: String,
-  pub wid: WorkspaceId,
-  // Some API responses return "status" field
+  pub workspace_id: WorkspaceId,
   pub status: Option<ProjectStatus>,
-  // Some API responses return "active" field
   pub active: Option<bool>,
-  pub cid: Option<ClientId>,
+  pub client_id: Option<ClientId>,
 }
 
 impl NamedEntity for Project {
@@ -60,8 +58,8 @@ pub struct Me {
 #[derive(Deserialize, Serialize, Debug)]
 pub struct TimeEntry {
   pub id: TimeEntryId,
-  pub wid: WorkspaceId,
-  pub pid: Option<ProjectId>,
+  pub workspace_id: WorkspaceId,
+  pub project_id: Option<ProjectId>,
   pub billable: Option<bool>,
   pub start: DateTime<Utc>,
   pub stop: Option<DateTime<Utc>>,
@@ -73,43 +71,6 @@ pub struct TimeEntry {
 
   #[serde(default)]
   pub duronly: bool,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct TimeEntryDetail {
-  pub id: TimeEntryId,
-  #[serde(rename = "workspace_id")]
-  pub wid: WorkspaceId,
-  #[serde(rename = "project_id")]
-  pub pid: Option<ProjectId>,
-  pub billable: Option<bool>,
-  pub start: DateTime<Utc>,
-  pub stop: Option<DateTime<Utc>>,
-  pub duration: i64,
-  pub description: Option<String>,
-
-  #[serde(default)]
-  pub tags: Option<Vec<String>>,
-
-  #[serde(default)]
-  pub duronly: bool,
-}
-
-impl From<TimeEntryDetail> for TimeEntry {
-  fn from(detail: TimeEntryDetail) -> Self {
-    Self {
-      id: detail.id,
-      wid: detail.wid,
-      pid: detail.pid,
-      billable: detail.billable,
-      start: detail.start,
-      stop: detail.stop,
-      duration: detail.duration,
-      description: detail.description,
-      tags: detail.tags,
-      duronly: detail.duronly,
-    }
-  }
 }
 
 #[derive(Deserialize, Serialize, Debug)]

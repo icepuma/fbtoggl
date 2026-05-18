@@ -231,15 +231,15 @@ fn test_create_workday_with_pause_2_hours() -> anyhow::Result<()> {
   let response_body = json!(
     {
       "id": 1234567890,
-      "wid": 1234567,
-      "pid": 123456789,
+      "workspace_id": 1234567,
+      "project_id": 123456789,
       "billable": false,
       "start": "2021-11-21T23:58:09+01:00",
       "duration": 200,
       "description": "fkbr",
       "duronly": false,
       "at": "2021-11-21T23:58:09+01:00",
-      "uid": 123456789
+      "user_id": 123456789
     }
   );
 
@@ -348,15 +348,15 @@ fn test_create_workday_with_pause_7_hours() -> anyhow::Result<()> {
   let first_response_body = json!(
     {
       "id": 1234567890,
-      "wid": 1234567,
-      "pid": 123456789,
+      "workspace_id": 1234567,
+      "project_id": 123456789,
       "billable": true,
       "start": "2021-11-21T22:58:09+01:00",
       "duration": 12600,
       "description": "fkbr",
       "duronly": false,
       "at": "2021-11-21T22:58:09+01:00",
-      "uid": 123456789
+      "user_id": 123456789
     }
   );
 
@@ -376,15 +376,15 @@ fn test_create_workday_with_pause_7_hours() -> anyhow::Result<()> {
   let second_response_body = json!(
     {
       "id": 1234567890,
-      "wid": 1234567,
-      "pid": 123456789,
+      "workspace_id": 1234567,
+      "project_id": 123456789,
       "billable": true,
       "start": "2021-11-22T03:28:09+01:00",
       "duration": 12600,
       "description": "fkbr",
       "duronly": false,
       "at": "2021-11-22T03:28:09+01:00",
-      "uid": 123456789
+      "user_id": 123456789
     }
   );
 
@@ -470,8 +470,8 @@ fn projects() -> Value {
     [
       {
         "id": 123456789,
-        "wid": 1234567,
-        "cid": 87654321,
+        "workspace_id": 1234567,
+        "client_id": 87654321,
         "name": "betamale gmbh",
         "billable": true,
         "is_private": true,
@@ -487,8 +487,8 @@ fn projects() -> Value {
       },
       {
         "id": 987654321,
-        "wid": 1234567,
-        "cid": 12345678,
+        "workspace_id": 1234567,
+        "client_id": 12345678,
         "name": "fkbr.org",
         "billable": true,
         "is_private": false,

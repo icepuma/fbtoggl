@@ -7,7 +7,7 @@ use crate::model::Me;
 use crate::model::Project;
 use crate::model::Range;
 use crate::model::Workspace;
-use crate::model::{TimeEntry, TimeEntryDetail};
+use crate::model::TimeEntry;
 use crate::types::{
   ApiToken, ClientStatusFilter, ProjectId, TimeEntryId, WorkspaceId,
 };
@@ -186,9 +186,8 @@ impl TogglClient {
     workspace_id: WorkspaceId,
   ) -> Result<Client> {
     let body = json!({
-      "active": true,
       "name": name,
-      "wid": workspace_id,
+      "workspace_id": workspace_id,
     });
 
     let uri = format!("workspaces/{workspace_id}/clients");
@@ -244,18 +243,19 @@ impl TogglClient {
     let duration = start.timestamp().saturating_neg();
 
     let body = json!({
-      "at": start,
       "billable": billable,
       "created_with": CREATED_WITH,
       "description": description,
       "duration": duration,
-      "pid": project_id,
+      "project_id": project_id,
       "start": start,
       "tags": tags,
-      "wid": workspace_id
+      "workspace_id": workspace_id,
     });
 
-    self.request_with_body(debug, Method::Post, "time_entries", body)
+    let uri = format!("workspaces/{workspace_id}/time_entries");
+
+    self.request_with_body(debug, Method::Post, &uri, body)
   }
 
   pub fn stop_time_entry(
@@ -274,12 +274,13 @@ impl TogglClient {
   pub fn delete_time_entry(
     &self,
     debug: bool,
+    workspace_id: WorkspaceId,
     time_entry_id: TimeEntryId,
   ) -> Result<()> {
     self.empty_request(
       debug,
       Method::Delete,
-      &format!("time_entries/{time_entry_id}"),
+      &format!("workspaces/{workspace_id}/time_entries/{time_entry_id}"),
     )
   }
 
@@ -288,12 +289,11 @@ impl TogglClient {
     debug: bool,
     time_entry_id: TimeEntryId,
   ) -> Result<TimeEntry> {
-    let detail: TimeEntryDetail = self.request(
+    self.request(
       debug,
       Method::Get,
       &format!("me/time_entries/{time_entry_id}"),
-    )?;
-    Ok(detail.into())
+    )
   }
 
   pub fn get_current_time_entry(
@@ -318,11 +318,11 @@ impl TogglClient {
       "billable": time_entry.billable,
       "description": time_entry.description,
       "duration": time_entry.duration,
-      "pid": time_entry.pid,
+      "project_id": time_entry.project_id,
       "start": time_entry.start,
       "stop": time_entry.stop,
       "tags": time_entry.tags,
-      "wid": workspace_id
+      "workspace_id": workspace_id,
     });
 
     self.request_with_body(

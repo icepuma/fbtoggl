@@ -132,10 +132,15 @@ fn collect_output_entries<'a>(
   values.sort_by(|e1, e2| e1.start.cmp(&e2.start));
 
   for entry in values {
-    let maybe_workspace = workspace_lookup.get(&entry.wid);
-    let maybe_project = &entry.pid.and_then(|pid| project_lookup.get(&pid));
-    let maybe_client = maybe_project
-      .and_then(|project| project.cid.and_then(|c| client_lookup.get(&c)));
+    let maybe_workspace = workspace_lookup.get(&entry.workspace_id);
+    let maybe_project = &entry
+      .project_id
+      .and_then(|project_id| project_lookup.get(&project_id));
+    let maybe_client = maybe_project.and_then(|project| {
+      project
+        .client_id
+        .and_then(|client_id| client_lookup.get(&client_id))
+    });
 
     // Running (Started, but not stopped) time_entries have a negative duration
     let duration = if entry.duration.is_negative() {
@@ -335,7 +340,10 @@ pub fn delete(
   time_entry: TimeEntryDetails,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
-  client.delete_time_entry(debug, time_entry.id)?;
+  let me = client.get_me(debug)?;
+  let workspace_id = me.default_workspace_id;
+
+  client.delete_time_entry(debug, workspace_id, time_entry.id)?;
 
   list(debug, format, &Range::Today, false, client)?;
 
@@ -445,7 +453,7 @@ pub fn continue_timer(
     entry_to_continue.description.as_deref(),
     entry_to_continue.tags.as_deref(),
     entry_to_continue
-      .pid
+      .project_id
       .ok_or_else(|| anyhow!("Entry has no project"))?,
     !entry_to_continue.billable.unwrap_or(false),
   )?;
@@ -474,7 +482,7 @@ pub fn edit(
     let workspace_id = me.default_workspace_id;
     let projects = client.get_workspace_projects(debug, false, workspace_id)?;
     let project = find_project_by_name(&projects, project_name)?;
-    entry.pid = Some(project.id);
+    entry.project_id = Some(project.id);
   }
 
   if let Some(ref desc) = edit_entry.description {
