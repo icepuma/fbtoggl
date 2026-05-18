@@ -53,7 +53,9 @@ pub fn detailed(
       .collect();
 
     let total_seconds = sum_durations(time_entries.iter().filter_map(|te| {
-      i64::try_from(te.seconds).ok().and_then(Duration::try_seconds)
+      i64::try_from(te.seconds)
+        .ok()
+        .and_then(Duration::try_seconds)
     }))?;
 
     println!();
@@ -78,9 +80,7 @@ pub fn detailed(
       let time_entries = time_entries_by_date
         .get(date)
         .ok_or_else(|| anyhow::anyhow!("Missing time entries for date"))?;
-      if let Some(window) =
-        render_day_line(*date, time_entries, compliance)?
-      {
+      if let Some(window) = render_day_line(*date, time_entries, compliance)? {
         day_windows.push(window);
       }
     }
@@ -99,7 +99,9 @@ fn render_day_line(
   compliance: bool,
 ) -> anyhow::Result<Option<DayWindow>> {
   let hours = sum_durations(time_entries.iter().filter_map(|te| {
-    i64::try_from(te.seconds).ok().and_then(Duration::try_seconds)
+    i64::try_from(te.seconds)
+      .ok()
+      .and_then(Duration::try_seconds)
   }))?;
 
   let start = time_entries
@@ -120,12 +122,7 @@ fn render_day_line(
   let mut warnings: Vec<String> = vec![];
 
   if compliance {
-    collect_arbzg_warnings(
-      hours,
-      r#break,
-      time_entries,
-      &mut warnings,
-    )?;
+    collect_arbzg_warnings(hours, r#break, time_entries, &mut warnings)?;
   }
 
   let hours_formatted = formatted_duration(hours);
@@ -141,8 +138,12 @@ fn render_day_line(
   println!(
     "{} - {} - {} | Work: {}{}{}",
     date.format("%Y-%m-%d"),
-    start.map(|s| s.format("%H:%M").to_string()).unwrap_or_default(),
-    end.map(|s| s.format("%H:%M").to_string()).unwrap_or_default(),
+    start
+      .map(|s| s.format("%H:%M").to_string())
+      .unwrap_or_default(),
+    end
+      .map(|s| s.format("%H:%M").to_string())
+      .unwrap_or_default(),
     hours_formatted,
     formatted_break,
     formatted_warnings
@@ -176,7 +177,9 @@ fn collect_arbzg_warnings(
       format!(
         "ArbZG §2(4)/§6: night work ({} of Nachtzeit) — 8h cap applies, \
          Ausgleich required within 4 weeks / 1 month",
-        formatted_duration(Duration::try_seconds(night_secs).unwrap_or_default())
+        formatted_duration(
+          Duration::try_seconds(night_secs).unwrap_or_default()
+        )
       )
       .yellow()
       .to_string(),
@@ -186,11 +189,9 @@ fn collect_arbzg_warnings(
   // § 3 (and § 6 for Nachtarbeitnehmer): hard daily cap is 10h.
   if hours_secs > HARD_CAP_SECS {
     warnings.push(
-      format!(
-        "ArbZG §3: {hours_formatted} exceeds the 10h hard daily limit"
-      )
-      .red()
-      .to_string(),
+      format!("ArbZG §3: {hours_formatted} exceeds the 10h hard daily limit")
+        .red()
+        .to_string(),
     );
   } else if hours_secs > SOFT_CAP_SECS {
     // > 8h is only permitted with averaging-Ausgleich.
@@ -307,7 +308,14 @@ pub fn summary(
     .filter(|e| e.billable.unwrap_or(false))
     .count();
 
-  println!("Summary for {range}{}", if billable_only { " (billable only)" } else { "" });
+  println!(
+    "Summary for {range}{}",
+    if billable_only {
+      " (billable only)"
+    } else {
+      ""
+    }
+  );
   println!();
   println!("Total time: {}", formatted_duration(total_duration));
 
@@ -445,8 +453,9 @@ fn bucket_by_client(
   let me = client.get_me()?;
   let workspace_id = me.default_workspace_id;
   let projects = client.get_workspace_projects(true, workspace_id)?;
-  let clients =
-    client.get_workspace_clients(true, workspace_id)?.unwrap_or_default();
+  let clients = client
+    .get_workspace_clients(true, workspace_id)?
+    .unwrap_or_default();
 
   let client_name: HashMap<_, _> =
     clients.iter().map(|c| (c.id, c.name.as_str())).collect();
@@ -482,10 +491,7 @@ fn bucket_by_tag(
     match e.tags.as_ref().filter(|t| !t.is_empty()) {
       Some(tags) => {
         for tag in tags {
-          add_into(
-            totals.entry(tag.clone()).or_insert(Duration::zero()),
-            dur,
-          )?;
+          add_into(totals.entry(tag.clone()).or_insert(Duration::zero()), dur)?;
         }
       }
       None => {
@@ -508,7 +514,9 @@ fn bucket_by_day(
 
   let mut totals: HashMap<String, Duration> = HashMap::new();
   for e in entries {
-    let key = DateTime::<Local>::from(e.start).format("%Y-%m-%d").to_string();
+    let key = DateTime::<Local>::from(e.start)
+      .format("%Y-%m-%d")
+      .to_string();
     add_into(
       totals.entry(key).or_insert(Duration::zero()),
       entry_duration(e),

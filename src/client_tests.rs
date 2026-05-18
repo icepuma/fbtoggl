@@ -20,7 +20,6 @@ use mockito::Matcher;
 use pretty_assertions::assert_eq;
 use serde_json::json;
 
-
 #[test]
 fn get_me() -> anyhow::Result<()> {
   let mut server = mockito::Server::new();
@@ -589,8 +588,8 @@ fn test_delete_time_entry() -> anyhow::Result<()> {
       server.url().parse()?,
     )?;
 
-    let deleted_time_entry = client
-      .delete_time_entry(WorkspaceId::new(789), TimeEntryId::new(456));
+    let deleted_time_entry =
+      client.delete_time_entry(WorkspaceId::new(789), TimeEntryId::new(456));
 
     assert_eq!(deleted_time_entry.is_ok(), true);
   }

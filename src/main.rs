@@ -260,9 +260,7 @@ fn handle_client(
 ) -> anyhow::Result<()> {
   let client = init_client(debug)?;
   match action {
-    cli::Client::List { all } => {
-      commands::clients::list(*all, format, &client)
-    }
+    cli::Client::List { all } => commands::clients::list(*all, format, &client),
     cli::Client::Create { name } => {
       let create_client = cli::CreateClient { name: name.clone() };
       commands::clients::create(format, &create_client, &client)

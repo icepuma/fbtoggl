@@ -15,7 +15,6 @@ use mockito::Matcher;
 use pretty_assertions::assert_eq;
 use serde_json::{Value, json};
 
-
 #[test]
 #[allow(
   clippy::too_many_lines,
