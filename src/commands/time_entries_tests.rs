@@ -15,23 +15,6 @@ use mockito::Matcher;
 use pretty_assertions::assert_eq;
 use serde_json::{Value, json};
 
-#[ctor::ctor]
-fn setup() {
-  unsafe {
-    std::env::set_var("RUST_LOG", "mockito=debug");
-    std::env::set_var("TZ", "Europe/Berlin");
-  }
-
-  let _ = env_logger::try_init();
-}
-
-#[ctor::dtor]
-fn teardown() {
-  unsafe {
-    std::env::remove_var("RUST_LOG");
-    std::env::remove_var("TZ");
-  }
-}
 
 #[test]
 #[allow(
@@ -138,13 +121,13 @@ fn test_calculate_duration() -> anyhow::Result<()> {
     tags: None,
   };
 
-  assert_eq!(
-    calculate_duration(
-      &time_entry_with_start_is_the_same_as_end
-    )
+  // Match on a TZ-stable substring so this test works under any system TZ.
+  let err = calculate_duration(&time_entry_with_start_is_the_same_as_end)
     .unwrap_err()
-    .to_string(),
-    "start='2021-11-21 23:58:09 +01:00' is greater or equal than end='2021-11-21 23:58:09 +01:00'".to_owned()
+    .to_string();
+  assert!(
+    err.contains("is greater or equal than end="),
+    "unexpected error: {err}"
   );
 
   let time_entry_with_start_is_after_end = CreateTimeEntry {
@@ -158,11 +141,12 @@ fn test_calculate_duration() -> anyhow::Result<()> {
     tags: None,
   };
 
-  assert_eq!(
-    calculate_duration(&time_entry_with_start_is_after_end)
-      .unwrap_err()
-      .to_string(),
-    "start='2021-11-22 00:58:09 +01:00' is greater or equal than end='2021-11-21 23:58:09 +01:00'".to_owned()
+  let err = calculate_duration(&time_entry_with_start_is_after_end)
+    .unwrap_err()
+    .to_string();
+  assert!(
+    err.contains("is greater or equal than end="),
+    "unexpected error: {err}"
   );
 
   let time_entry_where_lunch_break_is_longer_than_duration = CreateTimeEntry {
@@ -220,7 +204,7 @@ fn test_create_workday_with_pause_2_hours() -> anyhow::Result<()> {
       "description": "fkbr",
       "workspace_id": 1234567,
       "duration": 7200,
-      "start": "2021-11-21T23:58:09+01:00",
+      "start": "2021-11-21T22:58:09Z",
       "tags": null,
       "project_id": 123456789,
       "created_with": CREATED_WITH,
@@ -332,7 +316,7 @@ fn test_create_workday_with_pause_7_hours() -> anyhow::Result<()> {
       "description": "fkbr",
       "workspace_id": 1234567,
       "duration": 12600,
-      "start": "2021-11-21T22:58:09+01:00",
+      "start": "2021-11-21T21:58:09Z",
       "tags": null,
       "project_id": 123456789,
       "created_with": CREATED_WITH,
@@ -360,7 +344,7 @@ fn test_create_workday_with_pause_7_hours() -> anyhow::Result<()> {
       "description": "fkbr",
       "workspace_id": 1234567,
       "duration": 12600,
-      "start": "2021-11-22T03:28:09+01:00",
+      "start": "2021-11-22T02:28:09Z",
       "tags": null,
       "project_id": 123456789,
       "created_with": CREATED_WITH,

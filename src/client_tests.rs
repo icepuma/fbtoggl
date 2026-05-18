@@ -20,23 +20,6 @@ use mockito::Matcher;
 use pretty_assertions::assert_eq;
 use serde_json::json;
 
-#[ctor::ctor]
-fn setup() {
-  unsafe {
-    std::env::set_var("RUST_LOG", "mockito=debug");
-    std::env::set_var("TZ", "Europe/Berlin");
-  }
-
-  let _ = env_logger::try_init();
-}
-
-#[ctor::dtor]
-fn teardown() {
-  unsafe {
-    std::env::remove_var("RUST_LOG");
-    std::env::remove_var("TZ");
-  }
-}
 
 #[test]
 fn get_me() -> anyhow::Result<()> {
@@ -355,7 +338,7 @@ fn create_time_entry() -> anyhow::Result<()> {
       "workspace_id": 123456789,
       "tags": ["aa", "bb"],
       "duration": 200,
-      "start": "2021-11-21T23:58:09+01:00",
+      "start": "2021-11-21T22:58:09Z",
       "project_id": 123456789,
       "created_with": CREATED_WITH,
       "billable": true,
@@ -483,7 +466,7 @@ fn test_start_time_entry() -> anyhow::Result<()> {
       "description": "fkbr",
       "tags": ["a", "b"],
       "project_id": 123,
-      "start": "2021-11-21T23:58:09+01:00",
+      "start": "2021-11-21T22:58:09Z",
       "duration": -1,
       "created_with": CREATED_WITH,
       "billable": false,
