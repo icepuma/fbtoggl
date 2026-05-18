@@ -6,17 +6,13 @@ use crate::{
 use anyhow::Context;
 
 pub fn list(
-  debug: bool,
   include_archived: bool,
   format: &Format,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
-  let me = client.get_me(debug)?;
-  let workspace_projects = client.get_workspace_projects(
-    debug,
-    include_archived,
-    me.default_workspace_id,
-  )?;
+  let me = client.get_me()?;
+  let workspace_projects =
+    client.get_workspace_projects(include_archived, me.default_workspace_id)?;
 
   if workspace_projects.is_empty() {
     println!("No entries found!");
@@ -32,7 +28,6 @@ pub fn list(
 }
 
 pub fn create(
-  debug: bool,
   format: &Format,
   name: &str,
   client_name: Option<&str>,
@@ -40,13 +35,12 @@ pub fn create(
   color: Option<&str>,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
-  let me = client.get_me(debug)?;
+  let me = client.get_me()?;
   let workspace_id = me.default_workspace_id;
 
-  // If client name is provided, look up the client ID
   let client_id = if let Some(client_name) = client_name {
     let clients = client
-      .get_workspace_clients(debug, false, workspace_id)?
+      .get_workspace_clients(false, workspace_id)?
       .context("Failed to get clients")?;
 
     clients
@@ -57,14 +51,8 @@ pub fn create(
     None
   };
 
-  let project = client.create_project(
-    debug,
-    name,
-    workspace_id,
-    client_id,
-    billable,
-    color,
-  )?;
+  let project =
+    client.create_project(name, workspace_id, client_id, billable, color)?;
 
   println!("Created project: {}", project.name);
 

@@ -2,7 +2,8 @@ use core::fmt;
 use core::str::FromStr;
 use serde::{Deserialize, Serialize};
 
-// Newtype wrappers for IDs to prevent mixing them up
+// Newtype wrappers for IDs to prevent mixing them up. Constructors are
+// crate-private — IDs only enter the system via deserialization or CLI parse.
 macro_rules! define_id_type {
   ($name:ident) => {
     #[allow(
@@ -10,7 +11,7 @@ macro_rules! define_id_type {
       reason = "Constructor and accessor are part of the newtype API"
     )]
     impl $name {
-      pub const fn new(value: u64) -> Self {
+      pub(crate) const fn new(value: u64) -> Self {
         Self(value)
       }
 
@@ -102,7 +103,8 @@ impl ClientStatusFilter {
 }
 
 // API Token wrapper for security
-#[derive(Clone)]
+#[derive(Clone, Deserialize)]
+#[serde(try_from = "String")]
 pub struct ApiToken(String);
 
 impl ApiToken {
@@ -116,6 +118,14 @@ impl ApiToken {
   // Only expose the token value when absolutely needed for API calls
   pub(crate) fn as_str(&self) -> &str {
     &self.0
+  }
+}
+
+impl TryFrom<String> for ApiToken {
+  type Error = anyhow::Error;
+
+  fn try_from(value: String) -> Result<Self, Self::Error> {
+    Self::new(value)
   }
 }
 

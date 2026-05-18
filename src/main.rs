@@ -10,11 +10,13 @@ use clap::{CommandFactory, Parser};
 use client::init_client;
 use report_client::init_report_client;
 
+mod arbzg;
 mod cli;
 mod client;
 mod commands;
 mod common;
 mod config;
+mod duration_math;
 mod error;
 mod http_client;
 mod model;
@@ -102,8 +104,8 @@ fn handle_time_entry_start(
   format: &Format,
   time_entry: &cli::StartTimeEntry,
 ) -> anyhow::Result<()> {
-  let client = init_client()?;
-  commands::time_entries::start(debug, format, time_entry, &client)
+  let client = init_client(debug)?;
+  commands::time_entries::start(format, time_entry, &client)
 }
 
 fn handle_time_entry_stop(
@@ -111,12 +113,11 @@ fn handle_time_entry_stop(
   format: &Format,
   stop_entry: &cli::StopTimeEntry,
 ) -> anyhow::Result<()> {
-  let client = init_client()?;
-  if stop_entry.id.is_some() {
-    commands::time_entries::stop(debug, format, stop_entry, &client)
-  } else {
-    commands::time_entries::stop_current(debug, format, &client)
-  }
+  let client = init_client(debug)?;
+  stop_entry.id.map_or_else(
+    || commands::time_entries::stop_current(format, &client),
+    |id| commands::time_entries::stop(format, id, &client),
+  )
 }
 
 fn handle_time_entry_continue(
@@ -124,21 +125,16 @@ fn handle_time_entry_continue(
   format: &Format,
   continue_entry: &cli::ContinueTimeEntry,
 ) -> anyhow::Result<()> {
-  let client = init_client()?;
-  commands::time_entries::continue_timer(
-    debug,
-    format,
-    continue_entry.id,
-    &client,
-  )
+  let client = init_client(debug)?;
+  commands::time_entries::continue_timer(format, continue_entry.id, &client)
 }
 
 fn handle_time_entry_current(
   debug: bool,
   format: &Format,
 ) -> anyhow::Result<()> {
-  let client = init_client()?;
-  commands::time_entries::current(debug, format, &client)
+  let client = init_client(debug)?;
+  commands::time_entries::current(format, &client)
 }
 
 fn handle_time_entry_add(
@@ -146,8 +142,8 @@ fn handle_time_entry_add(
   format: &Format,
   time_entry: &cli::CreateTimeEntry,
 ) -> anyhow::Result<()> {
-  let client = init_client()?;
-  commands::time_entries::create(debug, format, time_entry, &client)
+  let client = init_client(debug)?;
+  commands::time_entries::create(format, time_entry, &client)
 }
 
 fn handle_time_entry_log(
@@ -155,9 +151,8 @@ fn handle_time_entry_log(
   format: &Format,
   list_time_entries: &cli::ListTimeEntries,
 ) -> anyhow::Result<()> {
-  let client = init_client()?;
+  let client = init_client(debug)?;
   commands::time_entries::list(
-    debug,
     format,
     &list_time_entries.range,
     list_time_entries.missing,
@@ -170,8 +165,8 @@ fn handle_time_entry_show(
   format: &Format,
   details: cli::TimeEntryDetails,
 ) -> anyhow::Result<()> {
-  let client = init_client()?;
-  commands::time_entries::details(debug, format, details, &client)
+  let client = init_client(debug)?;
+  commands::time_entries::details(format, details, &client)
 }
 
 fn handle_time_entry_edit(
@@ -179,8 +174,8 @@ fn handle_time_entry_edit(
   format: &Format,
   edit_entry: &cli::EditTimeEntry,
 ) -> anyhow::Result<()> {
-  let client = init_client()?;
-  commands::time_entries::edit(debug, format, edit_entry, &client)
+  let client = init_client(debug)?;
+  commands::time_entries::edit(format, edit_entry, &client)
 }
 
 fn handle_time_entry_delete(
@@ -188,21 +183,22 @@ fn handle_time_entry_delete(
   format: &Format,
   id: TimeEntryId,
 ) -> anyhow::Result<()> {
-  let client = init_client()?;
+  let client = init_client(debug)?;
   let time_entry = cli::TimeEntryDetails { id };
-  commands::time_entries::delete(debug, format, time_entry, &client)
+  commands::time_entries::delete(format, time_entry, &client)
 }
 
 fn handle_report(
   debug: bool,
   report_options: cli::ReportOptions,
 ) -> anyhow::Result<()> {
-  let client = init_client()?;
-  let report_client = init_report_client()?;
+  let client = init_client(debug)?;
+  let report_client = init_report_client(debug)?;
   commands::reports::detailed(
-    debug,
     &client,
     &report_options.range,
+    report_options.billable_only,
+    report_options.compliance,
     &report_client,
   )
 }
@@ -211,8 +207,13 @@ fn handle_summary(
   debug: bool,
   summary_options: cli::SummaryOptions,
 ) -> anyhow::Result<()> {
-  let client = init_client()?;
-  commands::reports::summary(debug, &client, &summary_options.range)
+  let client = init_client(debug)?;
+  commands::reports::summary(
+    &client,
+    &summary_options.range,
+    summary_options.group_by,
+    summary_options.billable_only,
+  )
 }
 
 fn handle_workspace(
@@ -220,9 +221,9 @@ fn handle_workspace(
   format: &Format,
   action: cli::Workspace,
 ) -> anyhow::Result<()> {
-  let client = init_client()?;
+  let client = init_client(debug)?;
   match action {
-    cli::Workspace::List => commands::workspaces::list(debug, format, &client),
+    cli::Workspace::List => commands::workspaces::list(format, &client),
   }
 }
 
@@ -231,10 +232,10 @@ fn handle_project(
   format: &Format,
   action: &cli::Project,
 ) -> anyhow::Result<()> {
-  let client = init_client()?;
+  let client = init_client(debug)?;
   match action {
     cli::Project::List { all } => {
-      commands::projects::list(debug, *all, format, &client)
+      commands::projects::list(*all, format, &client)
     }
     cli::Project::Create {
       name,
@@ -242,7 +243,6 @@ fn handle_project(
       billable,
       color,
     } => commands::projects::create(
-      debug,
       format,
       name,
       client_name.as_deref(),
@@ -258,14 +258,14 @@ fn handle_client(
   format: &Format,
   action: &cli::Client,
 ) -> anyhow::Result<()> {
-  let client = init_client()?;
+  let client = init_client(debug)?;
   match action {
     cli::Client::List { all } => {
-      commands::clients::list(debug, *all, format, &client)
+      commands::clients::list(*all, format, &client)
     }
     cli::Client::Create { name } => {
       let create_client = cli::CreateClient { name: name.clone() };
-      commands::clients::create(debug, format, &create_client, &client)
+      commands::clients::create(format, &create_client, &client)
     }
   }
 }
@@ -274,6 +274,8 @@ fn handle_config(action: cli::Config) -> anyhow::Result<()> {
   match action {
     cli::Config::Init => init_settings_file(),
     cli::Config::Show => commands::config::show(),
-    cli::Config::Set { key, value } => commands::config::set(&key, &value),
+    cli::Config::Set { key, value } => {
+      commands::config::set(&key, value.as_deref())
+    }
   }
 }

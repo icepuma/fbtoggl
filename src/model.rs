@@ -103,19 +103,18 @@ pub enum Range {
 }
 
 impl Range {
-  #[allow(
-    clippy::arithmetic_side_effects,
-    reason = "Date arithmetic is necessary for iterating through date ranges"
-  )]
   pub fn get_datetimes(self) -> anyhow::Result<Vec<DateTime<Local>>> {
     let (start, end) = self.as_range()?;
 
     // range "today" and "yesterday" have different start and end dates,
     // because toggl.com ranges work like that
     // => return only start date for missing datetime list
-    if (end - start).num_days() == 1 {
+    if crate::duration_math::datetime_diff(&end, &start).num_days() == 1 {
       return Ok(vec![start]);
     }
+
+    let one_day = Duration::try_days(1)
+      .ok_or_else(|| anyhow::anyhow!("Failed to create duration"))?;
 
     let mut it = start;
     let mut missing_days = vec![];
@@ -127,18 +126,22 @@ impl Range {
         missing_days.push(it);
       }
 
-      it += Duration::try_days(1)
-        .ok_or_else(|| anyhow::anyhow!("Failed to create duration"))?;
+      it = it
+        .checked_add_signed(one_day)
+        .ok_or_else(|| anyhow::anyhow!("Date iteration overflowed"))?;
     }
 
     Ok(missing_days)
   }
 
-  #[allow(
-    clippy::arithmetic_side_effects,
-    reason = "Date arithmetic is necessary for calculating date ranges"
-  )]
   pub fn as_range(self) -> anyhow::Result<(DateTime<Local>, DateTime<Local>)> {
+    let one_day = Duration::try_days(1)
+      .ok_or_else(|| anyhow::anyhow!("Failed to create one-day duration"))?;
+    let add_day = |dt: DateTime<Local>| -> anyhow::Result<DateTime<Local>> {
+      dt.checked_add_signed(one_day)
+        .ok_or_else(|| anyhow::anyhow!("Date arithmetic overflowed"))
+    };
+
     match self {
       Self::Today => {
         let now = Local::now();
@@ -147,25 +150,21 @@ impl Range {
           .single()
           .ok_or_else(|| anyhow::anyhow!("Could not create start datetime"))?;
 
-        let end = start
-          + Duration::try_days(1)
-            .ok_or_else(|| anyhow::anyhow!("Failed to create duration"))?;
+        let end = add_day(start)?;
 
         Ok((start, end))
       }
       Self::Yesterday => {
         let now = Local::now()
-          - Duration::try_days(1)
-            .ok_or_else(|| anyhow::anyhow!("Failed to create duration"))?;
+          .checked_sub_signed(one_day)
+          .ok_or_else(|| anyhow::anyhow!("Date arithmetic overflowed"))?;
 
         let start = Local
           .with_ymd_and_hms(now.year(), now.month(), now.day(), 0, 0, 0)
           .single()
           .ok_or_else(|| anyhow::anyhow!("Could not create start datetime"))?;
 
-        let end = start
-          + Duration::try_days(1)
-            .ok_or_else(|| anyhow::anyhow!("Failed to create duration"))?;
+        let end = add_day(start)?;
 
         Ok((start, end))
       }
@@ -175,9 +174,11 @@ impl Range {
         Ok((now.beginning_of_week(), now.end_of_week()))
       }
       Self::LastWeek => {
+        let one_week = Duration::try_weeks(1)
+          .ok_or_else(|| anyhow::anyhow!("Failed to create one-week duration"))?;
         let now = Local::now()
-          - Duration::try_weeks(1)
-            .ok_or_else(|| anyhow::anyhow!("Failed to create duration"))?;
+          .checked_sub_signed(one_week)
+          .ok_or_else(|| anyhow::anyhow!("Date arithmetic overflowed"))?;
 
         Ok((now.beginning_of_week(), now.end_of_week()))
       }
@@ -204,19 +205,16 @@ impl Range {
           anyhow::anyhow!("Could not create end datetime from date: {end_date}")
         })?;
 
-        let end = end
-          + Duration::try_days(1).ok_or_else(|| {
-            anyhow::anyhow!("Failed to add one day to end date")
-          })?;
-
-        Ok((
+        let start_local =
           Local.from_local_datetime(&start).single().ok_or_else(|| {
             anyhow::anyhow!("Could not convert start to local datetime")
-          })?,
+          })?;
+        let end_local =
           Local.from_local_datetime(&end).single().ok_or_else(|| {
             anyhow::anyhow!("Could not convert end to local datetime")
-          })?,
-        ))
+          })?;
+
+        Ok((start_local, add_day(end_local)?))
       }
       Self::Date(date) => {
         let start = Local
@@ -226,9 +224,7 @@ impl Range {
             anyhow::anyhow!("Could not create start datetime from date: {date}")
           })?;
 
-        let end = start
-          + Duration::try_days(1)
-            .ok_or_else(|| anyhow::anyhow!("Failed to add one day to date"))?;
+        let end = add_day(start)?;
 
         Ok((start, end))
       }
@@ -239,10 +235,6 @@ impl Range {
 impl FromStr for Range {
   type Err = anyhow::Error;
 
-  #[allow(
-    clippy::arithmetic_side_effects,
-    reason = "String slicing with known delimiter position is safe"
-  )]
   fn from_str(s: &str) -> Result<Self, Self::Err> {
     match s.to_lowercase().as_str() {
       "today" => Ok(Self::Today),
@@ -251,16 +243,12 @@ impl FromStr for Range {
       "last-week" => Ok(Self::LastWeek),
       "this-month" => Ok(Self::ThisMonth),
       "last-month" => Ok(Self::LastMonth),
-      from_to_or_date => match from_to_or_date.find('|') {
-        Some(index) => {
-          let start =
-            NaiveDate::parse_from_str(&from_to_or_date[..index], "%Y-%m-%d")
-              .map_err(|e| anyhow::anyhow!("Invalid start date: {e}"))?;
-          let end = NaiveDate::parse_from_str(
-            &from_to_or_date[index + 1..],
-            "%Y-%m-%d",
-          )
-          .map_err(|e| anyhow::anyhow!("Invalid end date: {e}"))?;
+      from_to_or_date => match from_to_or_date.split_once('|') {
+        Some((start_str, end_str)) => {
+          let start = NaiveDate::parse_from_str(start_str, "%Y-%m-%d")
+            .map_err(|e| anyhow::anyhow!("Invalid start date: {e}"))?;
+          let end = NaiveDate::parse_from_str(end_str, "%Y-%m-%d")
+            .map_err(|e| anyhow::anyhow!("Invalid end date: {e}"))?;
 
           if start > end {
             return Err(anyhow::anyhow!(
@@ -299,6 +287,8 @@ pub struct ReportTimeEntry {
   pub start: DateTime<Utc>,
   pub stop: DateTime<Utc>,
   pub seconds: u64,
+  #[serde(default)]
+  pub billable: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]

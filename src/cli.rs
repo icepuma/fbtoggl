@@ -99,12 +99,12 @@ pub enum Config {
   /// Show current configuration
   Show,
 
-  /// Set configuration value
+  /// Set configuration value (prompts for sensitive values like `api_token`)
   Set {
     /// Configuration key
     key: String,
-    /// Configuration value
-    value: String,
+    /// Configuration value (omit for sensitive keys; will prompt securely)
+    value: Option<String>,
   },
 }
 
@@ -113,6 +113,24 @@ pub struct ReportOptions {
   /// Date range ('today', 'yesterday', 'this-week', 'last-week', 'this-month', 'last-month', ISO 8601 date '2021-11-01', ISO 8601 date range '2021-11-01|2021-11-02')
   #[arg(long, default_value = "today")]
   pub range: Range,
+
+  /// Show only billable entries
+  #[arg(long)]
+  pub billable_only: bool,
+
+  /// Enable German `Arbeitszeitgesetz` (`ArbZG`) compliance warnings:
+  /// § 3 daily cap (10h), § 4 break thresholds and consecutive-work limit,
+  /// § 5 rest period between workdays, § 2(4)/§ 6 night-work detection.
+  #[arg(long)]
+  pub compliance: bool,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub enum GroupBy {
+  Project,
+  Client,
+  Tag,
+  Day,
 }
 
 #[derive(Parser, Debug, Clone, Copy)]
@@ -120,6 +138,14 @@ pub struct SummaryOptions {
   /// Date range ('today', 'yesterday', 'this-week', 'last-week', 'this-month', 'last-month', ISO 8601 date '2021-11-01', ISO 8601 date range '2021-11-01|2021-11-02')
   #[arg(long, default_value = "this-week")]
   pub range: Range,
+
+  /// Break down total time by this dimension
+  #[arg(long, value_enum)]
+  pub group_by: Option<GroupBy>,
+
+  /// Show only billable entries
+  #[arg(long)]
+  pub billable_only: bool,
 }
 
 #[derive(Subcommand, Debug, Clone, Copy)]

@@ -48,8 +48,8 @@ fbtoggl completions fish > ~/.config/fish/completions/fbtoggl.fish
 # Start a billable timer (default)
 fbtoggl start --project "<project>" --description "<description>"
 
-# Start a non-billable timer with tags
-fbtoggl start --project "<project>" --description "<description>" --non-billable --tags "tag1,tag2"
+# Start a non-billable timer with tags (repeat --tags for multiple)
+fbtoggl start --project "<project>" --description "<description>" --non-billable --tags "tag1" --tags "tag2"
 ```
 
 #### Stop a timer
