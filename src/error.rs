@@ -31,8 +31,17 @@ pub enum TogglError {
   /// Server error (5xx)
   ServerError { status: u16, message: String },
 
-  /// Network error
+  /// Request timed out
+  Timeout(minreq::Error),
+
+  /// TLS handshake / certificate error
+  Tls(minreq::Error),
+
+  /// Network / connectivity error (DNS, refused, reset)
   Network(minreq::Error),
+
+  /// HTTP protocol error (malformed response, redirect chain, etc.)
+  Protocol(minreq::Error),
 
   /// JSON parsing error
   Json(serde_json::Error),
@@ -62,7 +71,10 @@ impl fmt::Display for TogglError {
       Self::ServerError { status, message } => {
         write!(f, "Server error ({status}): {message}")
       }
+      Self::Timeout(err) => write!(f, "Request timed out: {err}"),
+      Self::Tls(err) => write!(f, "TLS error: {err}"),
       Self::Network(err) => write!(f, "Network error: {err}"),
+      Self::Protocol(err) => write!(f, "Protocol error: {err}"),
       Self::Json(err) => write!(f, "JSON error: {err}"),
       Self::Url(err) => write!(f, "URL error: {err}"),
       Self::Other(err) => write!(f, "{err}"),
@@ -73,7 +85,9 @@ impl fmt::Display for TogglError {
 impl std::error::Error for TogglError {
   fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
     match self {
-      Self::Network(err) => Some(err),
+      Self::Timeout(err) | Self::Tls(err) | Self::Network(err) | Self::Protocol(err) => {
+        Some(err)
+      }
       Self::Json(err) => Some(err),
       Self::Url(err) => Some(err),
       Self::Other(err) => Some(err.as_ref()),
@@ -84,7 +98,20 @@ impl std::error::Error for TogglError {
 
 impl From<minreq::Error> for TogglError {
   fn from(err: minreq::Error) -> Self {
-    Self::Network(err)
+    use minreq::Error::{
+      AddressNotFound, IoError, RustlsCreateConnection,
+    };
+
+    match err {
+      RustlsCreateConnection(_) => Self::Tls(err),
+      IoError(ref io_err)
+        if matches!(io_err.kind(), std::io::ErrorKind::TimedOut) =>
+      {
+        Self::Timeout(err)
+      }
+      IoError(_) | AddressNotFound => Self::Network(err),
+      _ => Self::Protocol(err),
+    }
   }
 }
 

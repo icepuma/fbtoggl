@@ -1,4 +1,5 @@
-use crate::config::get_settings_file;
+use crate::config::{get_settings_file, write_secure};
+use dialoguer::Password;
 use std::fs;
 
 fn mask_sensitive_value(key: &str, value: &str) -> String {
@@ -46,7 +47,7 @@ pub fn show() -> anyhow::Result<()> {
   Ok(())
 }
 
-pub fn set(key: &str, value: &str) -> anyhow::Result<()> {
+pub fn set(key: &str, value: Option<&str>) -> anyhow::Result<()> {
   let settings_path = get_settings_file()?;
 
   if !settings_path.exists() {
@@ -55,34 +56,41 @@ pub fn set(key: &str, value: &str) -> anyhow::Result<()> {
     );
   }
 
-  // Read the existing configuration
-  let contents = fs::read_to_string(&settings_path)?;
-  let mut config: toml::Value = toml::from_str(&contents)?;
-
-  // Update the configuration
-  match key {
+  // For sensitive keys, never accept the value from CLI (it would land in
+  // shell history). Prompt securely instead.
+  let resolved_value = match key {
     "api_token" => {
-      if let toml::Value::Table(ref mut table) = config {
-        table.insert(
-          "api_token".to_owned(),
-          toml::Value::String(value.to_owned()),
+      if value.is_some() {
+        anyhow::bail!(
+          "api_token must not be passed on the command line (shell history exposure). \
+           Run 'fbtoggl config set api_token' without a value to be prompted."
         );
       }
+      Password::new()
+        .with_prompt("New API token")
+        .allow_empty_password(false)
+        .interact()?
     }
     _ => {
       anyhow::bail!("Unknown configuration key: {key}. Valid keys: api_token");
     }
+  };
+
+  let contents = fs::read_to_string(&settings_path)?;
+  let mut config: toml::Value = toml::from_str(&contents)?;
+
+  if let toml::Value::Table(ref mut table) = config {
+    table.insert(
+      key.to_owned(),
+      toml::Value::String(resolved_value.clone()),
+    );
   }
 
-  // Write the updated configuration back
   let updated_contents = toml::to_string_pretty(&config)?;
-  fs::write(&settings_path, updated_contents)?;
-
-  // Mask sensitive values in output
-  let display_value = mask_sensitive_value(key, value);
+  write_secure(&settings_path, &updated_contents)?;
 
   println!("Updated configuration:");
-  println!("  {key} = {display_value}");
+  println!("  {} = {}", key, mask_sensitive_value(key, &resolved_value));
 
   Ok(())
 }

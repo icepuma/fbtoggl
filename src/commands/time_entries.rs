@@ -1,7 +1,7 @@
 use crate::{
   cli::{
-    CreateTimeEntry, EditTimeEntry, Format, StartTimeEntry, StopTimeEntry,
-    TimeEntryDetails, output_values_json,
+    CreateTimeEntry, EditTimeEntry, Format, StartTimeEntry, TimeEntryDetails,
+    output_values_json,
   },
   client::TogglClient,
   commands::common::find_project_by_name,
@@ -31,14 +31,13 @@ struct OutputEntry<'a> {
 }
 
 pub fn list(
-  debug: bool,
   format: &Format,
   range: &Range,
   missing: bool,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
   let mut time_entries = client
-    .get_time_entries(debug, range)
+    .get_time_entries(range)
     .context("Failed to fetch time entries from Toggl")?;
 
   if missing {
@@ -74,20 +73,15 @@ pub fn list(
     println!("No entries found!");
     return Ok(());
   } else {
-    let workspaces = client.get_workspaces(debug)?;
-    let me = client.get_me(debug)?;
+    let workspaces = client.get_workspaces()?;
+    let me = client.get_me()?;
 
     let workspace_id = me.default_workspace_id;
 
-    let projects = client.get_workspace_projects(debug, false, workspace_id)?;
+    let projects = client.get_workspace_projects(false, workspace_id)?;
     let clients = client
-      .get_workspace_clients(debug, false, workspace_id)?
-      .unwrap_or_else(|| {
-        if debug {
-          println!("No clients found for workspace {workspace_id}");
-        }
-        Vec::new()
-      });
+      .get_workspace_clients(false, workspace_id)?
+      .unwrap_or_default();
 
     let output_entries = collect_output_entries(
       &mut time_entries,
@@ -129,7 +123,7 @@ fn collect_output_entries<'a>(
 
   let mut output_entries = vec![];
 
-  values.sort_by(|e1, e2| e1.start.cmp(&e2.start));
+  values.sort_by_key(|e| e.start);
 
   for entry in values {
     let maybe_workspace = workspace_lookup.get(&entry.workspace_id);
@@ -154,7 +148,7 @@ fn collect_output_entries<'a>(
       date: entry.start.date_naive(),
       duration,
       workspace: maybe_workspace.map_or("-", |w| w.name.as_str()),
-      project: maybe_project.map(|p| p.name.as_str()).unwrap_or("-"),
+      project: maybe_project.map_or("-", |p| p.name.as_str()),
       client: maybe_client.map_or("-", |c| c.name.as_str()),
       description: entry.description.as_deref().unwrap_or(""),
       billable: entry.billable.unwrap_or_default(),
@@ -164,19 +158,14 @@ fn collect_output_entries<'a>(
   output_entries
 }
 
-#[allow(
-  clippy::arithmetic_side_effects,
-  reason = "Date and duration arithmetic is necessary for time entry creation"
-)]
 pub fn create(
-  debug: bool,
   format: &Format,
   time_entry: &CreateTimeEntry,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
-  let me = client.get_me(debug)?;
+  let me = client.get_me()?;
   let workspace_id = me.default_workspace_id;
-  let projects = client.get_workspace_projects(debug, false, workspace_id)?;
+  let projects = client.get_workspace_projects(false, workspace_id)?;
 
   let project = find_project_by_name(&projects, &time_entry.project)?;
 
@@ -187,7 +176,6 @@ pub fn create(
     let duration = duration.div(2);
 
     client.create_time_entry(
-      debug,
       time_entry.description.as_deref(),
       workspace_id,
       time_entry.tags.as_deref(),
@@ -197,10 +185,12 @@ pub fn create(
       time_entry.non_billable,
     )?;
 
-    let new_start = start + lunch_break() + duration;
+    let offset = crate::duration_math::checked_add(lunch_break(), duration)?;
+    let new_start = start
+      .checked_add_signed(offset)
+      .ok_or_else(|| anyhow!("Start time + offset overflowed"))?;
 
     client.create_time_entry(
-      debug,
       time_entry.description.as_deref(),
       workspace_id,
       time_entry.tags.as_deref(),
@@ -211,7 +201,6 @@ pub fn create(
     )?;
   } else {
     client.create_time_entry(
-      debug,
       time_entry.description.as_deref(),
       workspace_id,
       time_entry.tags.as_deref(),
@@ -222,7 +211,7 @@ pub fn create(
     )?;
   }
 
-  list(debug, format, &Range::Today, false, client)?;
+  list(format, &Range::Today, false, client)?;
 
   Ok(())
 }
@@ -231,10 +220,6 @@ const fn lunch_break() -> Duration {
   Duration::hours(1)
 }
 
-#[allow(
-  clippy::arithmetic_side_effects,
-  reason = "Duration calculations are necessary for time entry logic"
-)]
 pub(super) fn calculate_duration(
   time_entry: &CreateTimeEntry,
 ) -> anyhow::Result<Duration> {
@@ -247,7 +232,7 @@ pub(super) fn calculate_duration(
       ));
     }
 
-    let duration = end - start;
+    let duration = crate::duration_math::datetime_diff(&end, &start);
 
     if time_entry.lunch_break {
       calculate_duration_with_lunch_break(duration)
@@ -261,19 +246,15 @@ pub(super) fn calculate_duration(
   }
 }
 
-#[allow(
-  clippy::arithmetic_side_effects,
-  reason = "Duration subtraction is safe after checking duration > lunch"
-)]
 fn calculate_duration_with_lunch_break(
   duration: Duration,
 ) -> anyhow::Result<Duration> {
   let lunch = lunch_break();
-  let duration_with_lunch_break = if duration > lunch {
-    duration - lunch
-  } else {
+  if duration <= lunch {
     return Err(anyhow!("Duration minus lunch break is <= 0"));
-  };
+  }
+  let duration_with_lunch_break =
+    crate::duration_math::checked_sub(duration, lunch)?;
 
   if duration_with_lunch_break <= Duration::zero() {
     Err(anyhow!("Duration minus lunch break is <= 0"))
@@ -283,19 +264,17 @@ fn calculate_duration_with_lunch_break(
 }
 
 pub fn start(
-  debug: bool,
   format: &Format,
   time_entry: &StartTimeEntry,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
-  let me = client.get_me(debug)?;
+  let me = client.get_me()?;
   let workspace_id = me.default_workspace_id;
-  let projects = client.get_workspace_projects(debug, false, workspace_id)?;
+  let projects = client.get_workspace_projects(false, workspace_id)?;
 
   let project = find_project_by_name(&projects, &time_entry.project)?;
 
   let started_time_entry = client.start_time_entry(
-    debug,
     chrono::Local::now(),
     workspace_id,
     time_entry.description.as_deref(),
@@ -313,58 +292,52 @@ pub fn start(
   Ok(())
 }
 
+/// Stop a specific time entry by ID. The id-less form goes through
+/// [`stop_current`] instead — see `main::handle_time_entry_stop`.
 pub fn stop(
-  debug: bool,
   format: &Format,
-  time_entry: &StopTimeEntry,
+  id: TimeEntryId,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
-  let me = client.get_me(debug)?;
+  let me = client.get_me()?;
   let workspace_id = me.default_workspace_id;
 
-  // If ID is provided, use it; otherwise this shouldn't be called
-  if let Some(id) = time_entry.id {
-    client.stop_time_entry(debug, workspace_id, id)?;
-  } else {
-    return Err(anyhow!("No time entry ID provided"));
-  }
+  client.stop_time_entry(workspace_id, id)?;
 
-  list(debug, format, &Range::Today, false, client)?;
+  list(format, &Range::Today, false, client)?;
 
   Ok(())
 }
 
 pub fn delete(
-  debug: bool,
   format: &Format,
   time_entry: TimeEntryDetails,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
-  let me = client.get_me(debug)?;
+  let me = client.get_me()?;
   let workspace_id = me.default_workspace_id;
 
-  client.delete_time_entry(debug, workspace_id, time_entry.id)?;
+  client.delete_time_entry(workspace_id, time_entry.id)?;
 
-  list(debug, format, &Range::Today, false, client)?;
+  list(format, &Range::Today, false, client)?;
 
   Ok(())
 }
 
 pub fn details(
-  debug: bool,
   format: &Format,
   time_entry: TimeEntryDetails,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
-  let entry = client.get_time_entry(debug, time_entry.id)?;
+  let entry = client.get_time_entry(time_entry.id)?;
 
-  let workspaces = client.get_workspaces(debug)?;
-  let me = client.get_me(debug)?;
+  let workspaces = client.get_workspaces()?;
+  let me = client.get_me()?;
   let workspace_id = me.default_workspace_id;
 
-  let projects = client.get_workspace_projects(debug, false, workspace_id)?;
+  let projects = client.get_workspace_projects(false, workspace_id)?;
   let clients = client
-    .get_workspace_clients(debug, false, workspace_id)?
+    .get_workspace_clients(false, workspace_id)?
     .unwrap_or_default();
 
   let mut entries = vec![entry];
@@ -381,34 +354,28 @@ pub fn details(
 }
 
 pub fn stop_current(
-  debug: bool,
   format: &Format,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
-  let me = client.get_me(debug)?;
+  let me = client.get_me()?;
   let workspace_id = me.default_workspace_id;
 
-  // Get current running timer
-  let current = client.get_current_time_entry(debug)?;
+  let current = client.get_current_time_entry()?;
 
   if let Some(entry) = current {
-    client.stop_time_entry(debug, workspace_id, entry.id)?;
+    client.stop_time_entry(workspace_id, entry.id)?;
     println!("Stopped timer: {}", entry.description.unwrap_or_default());
   } else {
     println!("No timer is currently running");
   }
 
-  list(debug, format, &Range::Today, false, client)?;
+  list(format, &Range::Today, false, client)?;
 
   Ok(())
 }
 
-pub fn current(
-  debug: bool,
-  format: &Format,
-  client: &TogglClient,
-) -> anyhow::Result<()> {
-  let current = client.get_current_time_entry(debug)?;
+pub fn current(format: &Format, client: &TogglClient) -> anyhow::Result<()> {
+  let current = client.get_current_time_entry()?;
 
   if let Some(entry) = current {
     match format {
@@ -424,30 +391,36 @@ pub fn current(
 }
 
 pub fn continue_timer(
-  debug: bool,
   format: &Format,
   id: Option<TimeEntryId>,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
-  let me = client.get_me(debug)?;
+  let me = client.get_me()?;
   let workspace_id = me.default_workspace_id;
 
   let entry_to_continue = if let Some(id) = id {
-    // Continue specific entry
-    client.get_time_entry(debug, id)?
+    client.get_time_entry(id)?
   } else {
-    // Continue last entry
-    let entries = client.get_time_entries(debug, &Range::Today)?;
+    // Search the last 7 days so resuming Friday's work on Monday still works.
+    let today = chrono::Local::now().date_naive();
+    let window_start = today
+      .checked_sub_days(chrono::Days::new(7))
+      .ok_or_else(|| anyhow!("Failed to compute 7-day window"))?;
+    let entries =
+      client.get_time_entries(&Range::FromTo(window_start, today))?;
     entries
       .into_iter()
       .filter(|e| e.stop.is_some())
       .max_by_key(|e| e.stop)
-      .ok_or_else(|| anyhow!("No completed time entries found today"))?
+      .ok_or_else(|| {
+        anyhow!(
+          "No completed time entries in the last 7 days. \
+           Pass --id <ID> to continue an older entry."
+        )
+      })?
   };
 
-  // Start new entry with same details
   let started = client.start_time_entry(
-    debug,
     Local::now(),
     workspace_id,
     entry_to_continue.description.as_deref(),
@@ -468,19 +441,16 @@ pub fn continue_timer(
 }
 
 pub fn edit(
-  debug: bool,
   format: &Format,
   edit_entry: &EditTimeEntry,
   client: &TogglClient,
 ) -> anyhow::Result<()> {
-  // Get existing entry
-  let mut entry = client.get_time_entry(debug, edit_entry.id)?;
+  let mut entry = client.get_time_entry(edit_entry.id)?;
 
-  // Update fields if provided
   if let Some(ref project_name) = edit_entry.project {
-    let me = client.get_me(debug)?;
+    let me = client.get_me()?;
     let workspace_id = me.default_workspace_id;
-    let projects = client.get_workspace_projects(debug, false, workspace_id)?;
+    let projects = client.get_workspace_projects(false, workspace_id)?;
     let project = find_project_by_name(&projects, project_name)?;
     entry.project_id = Some(project.id);
   }
@@ -505,8 +475,7 @@ pub fn edit(
     entry.billable = Some(!entry.billable.unwrap_or(false));
   }
 
-  // Update the entry
-  let updated = client.update_time_entry(debug, edit_entry.id, &entry)?;
+  let updated = client.update_time_entry(edit_entry.id, &entry)?;
 
   match format {
     Format::Json => output_values_json(&[updated]),

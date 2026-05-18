@@ -283,12 +283,7 @@ fn test_create_workday_with_pause_2_hours() -> anyhow::Result<()> {
       server.url().parse()?,
     )?;
 
-    create(
-      false,
-      &crate::cli::Format::Json,
-      &workday_with_pause,
-      &client,
-    )?;
+    create(&crate::cli::Format::Json, &workday_with_pause, &client)?;
   }
 
   me_mock.assert();
@@ -440,12 +435,7 @@ fn test_create_workday_with_pause_7_hours() -> anyhow::Result<()> {
       server.url().parse()?,
     )?;
 
-    create(
-      false,
-      &crate::cli::Format::Json,
-      &workday_with_pause,
-      &client,
-    )?;
+    create(&crate::cli::Format::Json, &workday_with_pause, &client)?;
   }
 
   me_mock.assert();

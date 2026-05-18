@@ -4,12 +4,8 @@ use crate::{
   output::{output_named_entities_raw, output_named_entities_table},
 };
 
-pub fn list(
-  debug: bool,
-  format: &Format,
-  client: &TogglClient,
-) -> anyhow::Result<()> {
-  let workspaces = client.get_workspaces(debug)?;
+pub fn list(format: &Format, client: &TogglClient) -> anyhow::Result<()> {
+  let workspaces = client.get_workspaces()?;
 
   match format {
     Format::Json => output_values_json(&workspaces),

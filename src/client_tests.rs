@@ -65,7 +65,7 @@ fn get_me() -> anyhow::Result<()> {
       server.url().parse()?,
     )?;
 
-    let me = client.get_me(false)?;
+    let me = client.get_me()?;
 
     assert_eq!(me.default_workspace_id, WorkspaceId::new(1234567));
   }
@@ -121,7 +121,7 @@ fn get_workspaces() -> anyhow::Result<()> {
       server.url().parse()?,
     )?;
 
-    let workspaces = client.get_workspaces(false)?;
+    let workspaces = client.get_workspaces()?;
     let first_workspace = workspaces.first().unwrap();
 
     assert_eq!(first_workspace.id, WorkspaceId::new(1234567));
@@ -174,7 +174,7 @@ fn get_workspace_clients() -> anyhow::Result<()> {
     )?;
 
     let clients = client
-      .get_workspace_clients(false, false, WorkspaceId::new(12345678))?
+      .get_workspace_clients(false, WorkspaceId::new(12345678))?
       .unwrap_or_default();
     let first_client = clients.first().unwrap();
     let second_client = clients.get(1).unwrap();
@@ -253,11 +253,8 @@ fn get_workspace_projects() -> anyhow::Result<()> {
       server.url().parse()?,
     )?;
 
-    let projects = client.get_workspace_projects(
-      false,
-      false,
-      WorkspaceId::new(12345678),
-    )?;
+    let projects =
+      client.get_workspace_projects(false, WorkspaceId::new(12345678))?;
     let first_project = projects.first().unwrap();
     let second_project = projects.get(1).unwrap();
 
@@ -313,7 +310,7 @@ fn get_time_entries() -> anyhow::Result<()> {
   let mock = server
     .mock(
       "GET",
-      "/me/time_entries?start_date=2021-11-21&end_date=2021-11-23",
+      "/me/time_entries?start_date=2021-11-21&end_date=2021-11-22",
     )
     .with_header(
       "Authorization",
@@ -330,10 +327,9 @@ fn get_time_entries() -> anyhow::Result<()> {
       server.url().parse()?,
     )?;
 
-    let time_entries = client.get_time_entries(
-      false,
-      &Range::Date(NaiveDate::from_ymd_opt(2021, 11, 21).unwrap()),
-    )?;
+    let time_entries = client.get_time_entries(&Range::Date(
+      NaiveDate::from_ymd_opt(2021, 11, 21).unwrap(),
+    ))?;
     let first_time_entry = time_entries.first().unwrap();
     let second_time_entry = time_entries.get(1).unwrap();
 
@@ -406,7 +402,6 @@ fn create_time_entry() -> anyhow::Result<()> {
     )?;
 
     let created_time_entry = client.create_time_entry(
-      false,
       Some("Wurst"),
       WorkspaceId::new(123456789),
       Some(vec!["aa".to_owned(), "bb".to_owned()]).as_deref(),
@@ -471,7 +466,7 @@ fn create_client() -> anyhow::Result<()> {
     )?;
 
     let created_client =
-      client.create_client(false, "fkbr.org", WorkspaceId::new(123456789))?;
+      client.create_client("fkbr.org", WorkspaceId::new(123456789))?;
 
     assert_eq!(created_client.name, "fkbr.org");
   }
@@ -489,7 +484,7 @@ fn test_start_time_entry() -> anyhow::Result<()> {
       "tags": ["a", "b"],
       "project_id": 123,
       "start": "2021-11-21T23:58:09+01:00",
-      "duration": -1637535489,
+      "duration": -1,
       "created_with": CREATED_WITH,
       "billable": false,
       "workspace_id": 123456,
@@ -503,7 +498,7 @@ fn test_start_time_entry() -> anyhow::Result<()> {
       "workspace_id": 123456,
       "billable": false,
       "start": "2013-03-05T07:58:58.000Z",
-      "duration": -1637535489,
+      "duration": -1,
       "description": "fkbr",
       "tags": ["a", "b"]
     }
@@ -530,7 +525,6 @@ fn test_start_time_entry() -> anyhow::Result<()> {
     )?;
 
     let started_time_entry = client.start_time_entry(
-      false,
       DateTime::<Local>::from_str("2021-11-21T23:58:09+01:00")?,
       WorkspaceId::new(123456),
       Some("fkbr"),
@@ -581,11 +575,8 @@ fn test_stop_time_entry() -> anyhow::Result<()> {
       server.url().parse()?,
     )?;
 
-    let started_time_entry = client.stop_time_entry(
-      false,
-      WorkspaceId::new(456),
-      TimeEntryId::new(123),
-    )?;
+    let started_time_entry =
+      client.stop_time_entry(WorkspaceId::new(456), TimeEntryId::new(123))?;
 
     assert_eq!(started_time_entry.id, TimeEntryId::new(123));
   }
@@ -615,13 +606,185 @@ fn test_delete_time_entry() -> anyhow::Result<()> {
       server.url().parse()?,
     )?;
 
-    let deleted_time_entry = client.delete_time_entry(
-      false,
-      WorkspaceId::new(789),
-      TimeEntryId::new(456),
-    );
+    let deleted_time_entry = client
+      .delete_time_entry(WorkspaceId::new(789), TimeEntryId::new(456));
 
     assert_eq!(deleted_time_entry.is_ok(), true);
+  }
+
+  mock.assert();
+
+  Ok(())
+}
+
+#[test]
+fn get_workspace_clients_include_archived_uses_status_both()
+-> anyhow::Result<()> {
+  let body = json!([]);
+
+  let mut server = mockito::Server::new();
+
+  let mock = server
+    .mock("GET", "/workspaces/42/clients?status=both")
+    .with_header(
+      "Authorization",
+      "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+    )
+    .with_status(200)
+    .with_body(body.to_string())
+    .expect(1)
+    .create();
+
+  {
+    let client = TogglClient::new_with_base_url(
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_owned(),
+      server.url().parse()?,
+    )?;
+
+    client.get_workspace_clients(true, WorkspaceId::new(42))?;
+  }
+
+  mock.assert();
+
+  Ok(())
+}
+
+#[test]
+fn get_workspace_projects_include_archived_drops_active_filter()
+-> anyhow::Result<()> {
+  let body = json!([]);
+
+  let mut server = mockito::Server::new();
+
+  let mock = server
+    .mock("GET", "/workspaces/42/projects")
+    .with_header(
+      "Authorization",
+      "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+    )
+    .with_status(200)
+    .with_body(body.to_string())
+    .expect(1)
+    .create();
+
+  {
+    let client = TogglClient::new_with_base_url(
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_owned(),
+      server.url().parse()?,
+    )?;
+
+    client.get_workspace_projects(true, WorkspaceId::new(42))?;
+  }
+
+  mock.assert();
+
+  Ok(())
+}
+
+#[test]
+fn get_time_entries_from_to_range_uses_exclusive_end() -> anyhow::Result<()> {
+  // Range::FromTo(2021-11-01, 2021-11-03) covers entries on Nov 1, 2, and 3.
+  // The Toggl v9 end_date is exclusive, so the URL end_date is Nov 4.
+  // Verifies bug #1 from the audit stays fixed (the +1 day must not be
+  // applied twice).
+  let body = json!([]);
+
+  let mut server = mockito::Server::new();
+
+  let mock = server
+    .mock(
+      "GET",
+      "/me/time_entries?start_date=2021-11-01&end_date=2021-11-04",
+    )
+    .with_header(
+      "Authorization",
+      "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+    )
+    .with_status(200)
+    .with_body(body.to_string())
+    .expect(1)
+    .create();
+
+  {
+    let client = TogglClient::new_with_base_url(
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_owned(),
+      server.url().parse()?,
+    )?;
+
+    client.get_time_entries(&Range::FromTo(
+      NaiveDate::from_ymd_opt(2021, 11, 1).unwrap(),
+      NaiveDate::from_ymd_opt(2021, 11, 3).unwrap(),
+    ))?;
+  }
+
+  mock.assert();
+
+  Ok(())
+}
+
+#[test]
+fn update_time_entry_omits_stop_when_running() -> anyhow::Result<()> {
+  use crate::model::TimeEntry;
+  use chrono::Utc;
+  use mockito::Matcher;
+
+  // For a running entry (stop=None, duration=-1) we must NOT send `stop: null`
+  // in the PUT body — Toggl v9 rejects that combo as inconsistent.
+  let running = TimeEntry {
+    id: TimeEntryId::new(99),
+    workspace_id: WorkspaceId::new(7),
+    project_id: Some(ProjectId::new(1)),
+    billable: Some(true),
+    start: DateTime::<Utc>::from_str("2021-11-21T22:57:33+00:00")?,
+    stop: None,
+    duration: -1,
+    description: Some("running".to_owned()),
+    tags: None,
+    duronly: false,
+  };
+
+  let response = json!({
+    "id": 99,
+    "workspace_id": 7,
+    "project_id": 1,
+    "billable": true,
+    "start": "2021-11-21T22:57:33+00:00",
+    "duration": -1,
+    "description": "running"
+  });
+
+  let mut server = mockito::Server::new();
+
+  // Exact body match: if the code mistakenly adds "stop": null this fails.
+  let expected_body = json!({
+    "billable": true,
+    "description": "running",
+    "duration": -1,
+    "project_id": 1,
+    "start": "2021-11-21T22:57:33Z",
+    "tags": null,
+    "workspace_id": 7,
+  });
+
+  let mock = server
+    .mock("PUT", "/workspaces/7/time_entries/99")
+    .with_header(
+      "Authorization",
+      "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+    )
+    .with_status(200)
+    .match_body(Matcher::Json(expected_body))
+    .with_body(response.to_string())
+    .expect(1)
+    .create();
+
+  {
+    let client = TogglClient::new_with_base_url(
+      "cb7bf7efa6d652046abd2f7d84ee18c1".to_owned(),
+      server.url().parse()?,
+    )?;
+
+    client.update_time_entry(TimeEntryId::new(99), &running)?;
   }
 
   mock.assert();
