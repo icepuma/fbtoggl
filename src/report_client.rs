@@ -95,8 +95,8 @@ impl TogglReportClient {
         println!();
       }
 
-      let row_header = response.headers.get("x-next-row-number").cloned();
-      let id_header = response.headers.get("x-next-id").cloned();
+      let row_header = response.header("x-next-row-number").map(str::to_owned);
+      let id_header = response.header("x-next-id").map(str::to_owned);
 
       let response = check_status(response, self.service_name())?;
       let data: Vec<ReportDetails> = response
