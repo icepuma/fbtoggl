@@ -57,7 +57,7 @@ cargo_common_metadata = "allow"  # We have the important metadata already
 
 [dependencies]
 base64 = "0.22.1"
-minreq = { version = "2.14.1", features = [
+minreq = { version = "3.0.0-rc.1", features = [
     "https-rustls-probe",
     "json-using-serde",
     "urlencoding",

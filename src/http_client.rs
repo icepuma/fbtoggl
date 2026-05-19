@@ -77,20 +77,12 @@ fn send<C: HttpClient + ?Sized>(
 }
 
 /// Return the response on 2xx, or a typed error on anything else.
-#[allow(
-  clippy::cast_possible_truncation,
-  clippy::cast_sign_loss,
-  clippy::as_conversions,
-  reason = "HTTP status codes are guaranteed to be positive and fit in u16"
-)]
 pub fn check_status(response: Response, service: &str) -> Result<Response> {
   match response.status_code {
     200 | 201 => Ok(response),
     status => Err(response.as_str().map_or_else(
-      |_| {
-        from_status_code(status as u16, "Unable to read response body", service)
-      },
-      |text| from_status_code(status as u16, text, service),
+      |_| from_status_code(status, "Unable to read response body", service),
+      |text| from_status_code(status, text, service),
     )),
   }
 }
