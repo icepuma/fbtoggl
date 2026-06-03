@@ -34,6 +34,19 @@ impl TogglReportClient {
       debug,
     })
   }
+
+  #[cfg(test)]
+  pub fn new_with_base_url(
+    api_token: String,
+    base_url: Url,
+  ) -> anyhow::Result<Self> {
+    let api_token = ApiToken::new(api_token)?;
+    Ok(Self {
+      base_url,
+      api_token,
+      debug: false,
+    })
+  }
 }
 
 impl HttpClient for TogglReportClient {
@@ -61,7 +74,7 @@ impl TogglReportClient {
     range: &Range,
   ) -> Result<Vec<ReportDetails>> {
     let mut result: Vec<ReportDetails> = vec![];
-    let (start_date, end_date) = range.as_range()?;
+    let (start_date, end_date) = range.as_dates()?;
 
     let start_date = start_date.format("%Y-%m-%d").to_string();
     let end_date = end_date.format("%Y-%m-%d").to_string();
@@ -113,5 +126,100 @@ impl TogglReportClient {
     }
 
     Ok(result)
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  #![allow(clippy::unwrap_used, reason = "Test code can panic on failure")]
+  #![allow(
+    clippy::significant_drop_tightening,
+    reason = "Test server must remain alive for the duration of tests"
+  )]
+
+  use super::TogglReportClient;
+  use crate::model::Range;
+  use crate::types::WorkspaceId;
+  use chrono::NaiveDate;
+  use mockito::Matcher;
+  use serde_json::json;
+
+  #[test]
+  fn detailed_uses_inclusive_report_end_date_for_single_day_range()
+  -> anyhow::Result<()> {
+    let mut server = mockito::Server::new();
+    let request_body = json!({
+      "start_date": "2021-11-21",
+      "end_date": "2021-11-21",
+    });
+
+    let mock = server
+      .mock("POST", "/workspace/42/search/time_entries")
+      .with_header(
+        "Authorization",
+        "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+      )
+      .with_status(200)
+      .match_body(Matcher::Json(request_body))
+      .with_body(json!([]).to_string())
+      .expect(1)
+      .create();
+
+    {
+      let client = TogglReportClient::new_with_base_url(
+        "cb7bf7efa6d652046abd2f7d84ee18c1".to_owned(),
+        server.url().parse()?,
+      )?;
+
+      client.detailed(
+        WorkspaceId::new(42),
+        &Range::Date(NaiveDate::from_ymd_opt(2021, 11, 21).unwrap()),
+      )?;
+    }
+
+    mock.assert();
+
+    Ok(())
+  }
+
+  #[test]
+  fn detailed_uses_inclusive_report_end_date_for_from_to_range()
+  -> anyhow::Result<()> {
+    let mut server = mockito::Server::new();
+    let request_body = json!({
+      "start_date": "2021-11-01",
+      "end_date": "2021-11-03",
+    });
+
+    let mock = server
+      .mock("POST", "/workspace/42/search/time_entries")
+      .with_header(
+        "Authorization",
+        "Basic Y2I3YmY3ZWZhNmQ2NTIwNDZhYmQyZjdkODRlZTE4YzE6YXBpX3Rva2Vu",
+      )
+      .with_status(200)
+      .match_body(Matcher::Json(request_body))
+      .with_body(json!([]).to_string())
+      .expect(1)
+      .create();
+
+    {
+      let client = TogglReportClient::new_with_base_url(
+        "cb7bf7efa6d652046abd2f7d84ee18c1".to_owned(),
+        server.url().parse()?,
+      )?;
+
+      client.detailed(
+        WorkspaceId::new(42),
+        &Range::FromTo(
+          NaiveDate::from_ymd_opt(2021, 11, 1).unwrap(),
+          NaiveDate::from_ymd_opt(2021, 11, 3).unwrap(),
+        ),
+      )?;
+    }
+
+    mock.assert();
+
+    Ok(())
   }
 }

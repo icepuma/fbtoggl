@@ -101,7 +101,7 @@ impl TogglClient {
   }
 
   pub fn get_time_entries(&self, range: &Range) -> Result<Vec<TimeEntry>> {
-    let (start, end) = range.as_range()?;
+    let (start, end) = range.as_time_entries_dates()?;
     let start_date = start.format("%Y-%m-%d").to_string();
     let end_date = end.format("%Y-%m-%d").to_string();
 

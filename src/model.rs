@@ -3,7 +3,7 @@ use crate::types::{
   ClientId, ProjectId, ProjectStatus, TimeEntryId, WorkspaceId,
 };
 use chrono::{
-  DateTime, Datelike, Duration, Local, NaiveDate, TimeZone, Utc, Weekday,
+  DateTime, Datelike, Days, Local, NaiveDate, TimeZone, Utc, Weekday,
 };
 use chronoutil::shift_months;
 use core::fmt;
@@ -104,133 +104,109 @@ pub enum Range {
 
 impl Range {
   pub fn get_datetimes(self) -> anyhow::Result<Vec<DateTime<Local>>> {
-    let (start, end) = self.as_range()?;
+    self.get_datetimes_from(Local::now())
+  }
 
-    // range "today" and "yesterday" have different start and end dates,
-    // because toggl.com ranges work like that
-    // => return only start date for missing datetime list
-    if crate::duration_math::datetime_diff(&end, &start).num_days() == 1 {
-      return Ok(vec![start]);
-    }
-
-    let one_day = Duration::try_days(1)
-      .ok_or_else(|| anyhow::anyhow!("Failed to create duration"))?;
-
+  fn get_datetimes_from(
+    self,
+    now: DateTime<Local>,
+  ) -> anyhow::Result<Vec<DateTime<Local>>> {
+    let (start, end) = self.as_dates_from(now)?;
     let mut it = start;
     let mut missing_days = vec![];
 
     while it <= end {
-      let weekday = it.date_naive().weekday();
+      let weekday = it.weekday();
 
       if weekday != Weekday::Sat && weekday != Weekday::Sun {
-        missing_days.push(it);
+        missing_days.push(local_midnight(it)?);
       }
 
       it = it
-        .checked_add_signed(one_day)
+        .checked_add_days(Days::new(1))
         .ok_or_else(|| anyhow::anyhow!("Date iteration overflowed"))?;
     }
 
     Ok(missing_days)
   }
 
-  pub fn as_range(self) -> anyhow::Result<(DateTime<Local>, DateTime<Local>)> {
-    let one_day = Duration::try_days(1)
-      .ok_or_else(|| anyhow::anyhow!("Failed to create one-day duration"))?;
-    let add_day = |dt: DateTime<Local>| -> anyhow::Result<DateTime<Local>> {
-      dt.checked_add_signed(one_day)
-        .ok_or_else(|| anyhow::anyhow!("Date arithmetic overflowed"))
-    };
+  pub fn as_dates(self) -> anyhow::Result<(NaiveDate, NaiveDate)> {
+    self.as_dates_from(Local::now())
+  }
 
+  fn as_dates_from(
+    self,
+    now: DateTime<Local>,
+  ) -> anyhow::Result<(NaiveDate, NaiveDate)> {
     match self {
       Self::Today => {
-        let now = Local::now();
-        let start = Local
-          .with_ymd_and_hms(now.year(), now.month(), now.day(), 0, 0, 0)
-          .single()
-          .ok_or_else(|| anyhow::anyhow!("Could not create start datetime"))?;
+        let today = now.date_naive();
 
-        let end = add_day(start)?;
-
-        Ok((start, end))
+        Ok((today, today))
       }
       Self::Yesterday => {
-        let now = Local::now()
-          .checked_sub_signed(one_day)
+        let yesterday = now
+          .date_naive()
+          .checked_sub_days(Days::new(1))
           .ok_or_else(|| anyhow::anyhow!("Date arithmetic overflowed"))?;
 
-        let start = Local
-          .with_ymd_and_hms(now.year(), now.month(), now.day(), 0, 0, 0)
-          .single()
-          .ok_or_else(|| anyhow::anyhow!("Could not create start datetime"))?;
-
-        let end = add_day(start)?;
-
-        Ok((start, end))
+        Ok((yesterday, yesterday))
       }
-      Self::ThisWeek => {
-        let now = Local::now();
-
-        Ok((now.beginning_of_week(), now.end_of_week()))
-      }
+      Self::ThisWeek => Ok((
+        now.beginning_of_week().date_naive(),
+        now.end_of_week().date_naive(),
+      )),
       Self::LastWeek => {
-        let one_week = Duration::try_weeks(1).ok_or_else(|| {
-          anyhow::anyhow!("Failed to create one-week duration")
-        })?;
-        let now = Local::now()
-          .checked_sub_signed(one_week)
+        let now = now
+          .checked_sub_days(Days::new(7))
           .ok_or_else(|| anyhow::anyhow!("Date arithmetic overflowed"))?;
 
-        Ok((now.beginning_of_week(), now.end_of_week()))
+        Ok((
+          now.beginning_of_week().date_naive(),
+          now.end_of_week().date_naive(),
+        ))
       }
-      Self::ThisMonth => {
-        let now = Local::now();
-
-        Ok((now.beginning_of_month(), now.end_of_month()))
-      }
+      Self::ThisMonth => Ok((
+        now.beginning_of_month().date_naive(),
+        now.end_of_month().date_naive(),
+      )),
       Self::LastMonth => {
-        let now = Local::now();
-
         let date = shift_months(now, -1);
 
-        Ok((date.beginning_of_month(), date.end_of_month()))
+        Ok((
+          date.beginning_of_month().date_naive(),
+          date.end_of_month().date_naive(),
+        ))
       }
-      Self::FromTo(start_date, end_date) => {
-        let start = start_date.and_hms_opt(0, 0, 0).ok_or_else(|| {
-          anyhow::anyhow!(
-            "Could not create start datetime from date: {start_date}"
-          )
-        })?;
-
-        let end = end_date.and_hms_opt(0, 0, 0).ok_or_else(|| {
-          anyhow::anyhow!("Could not create end datetime from date: {end_date}")
-        })?;
-
-        let start_local =
-          Local.from_local_datetime(&start).single().ok_or_else(|| {
-            anyhow::anyhow!("Could not convert start to local datetime")
-          })?;
-        let end_local =
-          Local.from_local_datetime(&end).single().ok_or_else(|| {
-            anyhow::anyhow!("Could not convert end to local datetime")
-          })?;
-
-        Ok((start_local, add_day(end_local)?))
-      }
-      Self::Date(date) => {
-        let start = Local
-          .with_ymd_and_hms(date.year(), date.month(), date.day(), 0, 0, 0)
-          .single()
-          .ok_or_else(|| {
-            anyhow::anyhow!("Could not create start datetime from date: {date}")
-          })?;
-
-        let end = add_day(start)?;
-
-        Ok((start, end))
-      }
+      Self::FromTo(start_date, end_date) => Ok((start_date, end_date)),
+      Self::Date(date) => Ok((date, date)),
     }
   }
+
+  pub fn as_time_entries_dates(self) -> anyhow::Result<(NaiveDate, NaiveDate)> {
+    self.as_time_entries_dates_from(Local::now())
+  }
+
+  fn as_time_entries_dates_from(
+    self,
+    now: DateTime<Local>,
+  ) -> anyhow::Result<(NaiveDate, NaiveDate)> {
+    let (start, end) = self.as_dates_from(now)?;
+    let exclusive_end = end
+      .checked_add_days(Days::new(1))
+      .ok_or_else(|| anyhow::anyhow!("Date arithmetic overflowed"))?;
+
+    Ok((start, exclusive_end))
+  }
+}
+
+fn local_midnight(date: NaiveDate) -> anyhow::Result<DateTime<Local>> {
+  Local
+    .with_ymd_and_hms(date.year(), date.month(), date.day(), 0, 0, 0)
+    .single()
+    .ok_or_else(|| {
+      anyhow::anyhow!("Could not create start datetime from date: {date}")
+    })
 }
 
 impl FromStr for Range {
@@ -269,7 +245,7 @@ impl FromStr for Range {
 
 impl Display for Range {
   fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-    if let Ok(range) = self.as_range() {
+    if let Ok(range) = self.as_dates() {
       write!(
         f,
         "{} - {}",
@@ -279,6 +255,140 @@ impl Display for Range {
     } else {
       write!(f, "Invalid range")
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  #![allow(clippy::unwrap_used, reason = "Test code can panic on failure")]
+
+  use super::Range;
+  use chrono::{DateTime, Local, NaiveDate, TimeZone};
+  use pretty_assertions::assert_eq;
+
+  fn date(year: i32, month: u32, day: u32) -> NaiveDate {
+    NaiveDate::from_ymd_opt(year, month, day).unwrap()
+  }
+
+  fn fixed_now() -> DateTime<Local> {
+    Local
+      .with_ymd_and_hms(2024, 3, 15, 12, 0, 0)
+      .single()
+      .unwrap()
+  }
+
+  #[test]
+  fn date_range_display_uses_inclusive_end_date() {
+    let date = date(2021, 11, 21);
+
+    assert_eq!(Range::Date(date).to_string(), "2021-11-21 - 2021-11-21");
+  }
+
+  #[test]
+  fn preset_ranges_are_inclusive_calendar_dates() -> anyhow::Result<()> {
+    let cases = [
+      (Range::Today, (date(2024, 3, 15), date(2024, 3, 15))),
+      (Range::Yesterday, (date(2024, 3, 14), date(2024, 3, 14))),
+      (Range::ThisWeek, (date(2024, 3, 11), date(2024, 3, 17))),
+      (Range::LastWeek, (date(2024, 3, 4), date(2024, 3, 10))),
+      (Range::ThisMonth, (date(2024, 3, 1), date(2024, 3, 31))),
+      (Range::LastMonth, (date(2024, 2, 1), date(2024, 2, 29))),
+      (
+        Range::Date(date(2024, 3, 2)),
+        (date(2024, 3, 2), date(2024, 3, 2)),
+      ),
+      (
+        Range::FromTo(date(2024, 3, 1), date(2024, 3, 2)),
+        (date(2024, 3, 1), date(2024, 3, 2)),
+      ),
+    ];
+
+    for (range, expected) in cases {
+      assert_eq!(range.as_dates_from(fixed_now())?, expected, "{range:?}");
+    }
+
+    Ok(())
+  }
+
+  #[test]
+  fn time_entry_ranges_use_exclusive_end_date() -> anyhow::Result<()> {
+    let cases = [
+      (Range::Today, (date(2024, 3, 15), date(2024, 3, 16))),
+      (Range::Yesterday, (date(2024, 3, 14), date(2024, 3, 15))),
+      (Range::ThisWeek, (date(2024, 3, 11), date(2024, 3, 18))),
+      (Range::LastWeek, (date(2024, 3, 4), date(2024, 3, 11))),
+      (Range::ThisMonth, (date(2024, 3, 1), date(2024, 4, 1))),
+      (Range::LastMonth, (date(2024, 2, 1), date(2024, 3, 1))),
+      (
+        Range::Date(date(2024, 3, 2)),
+        (date(2024, 3, 2), date(2024, 3, 3)),
+      ),
+      (
+        Range::FromTo(date(2024, 3, 1), date(2024, 3, 2)),
+        (date(2024, 3, 1), date(2024, 3, 3)),
+      ),
+    ];
+
+    for (range, expected) in cases {
+      assert_eq!(
+        range.as_time_entries_dates_from(fixed_now())?,
+        expected,
+        "{range:?}"
+      );
+    }
+
+    Ok(())
+  }
+
+  #[test]
+  fn this_week_missing_dates_skip_weekend() -> anyhow::Result<()> {
+    let days = Range::ThisWeek
+      .get_datetimes_from(fixed_now())?
+      .into_iter()
+      .map(|dt| dt.date_naive())
+      .collect::<Vec<_>>();
+
+    assert_eq!(
+      days,
+      vec![
+        date(2024, 3, 11),
+        date(2024, 3, 12),
+        date(2024, 3, 13),
+        date(2024, 3, 14),
+        date(2024, 3, 15),
+      ]
+    );
+
+    Ok(())
+  }
+
+  #[test]
+  fn from_to_get_datetimes_includes_end_date() -> anyhow::Result<()> {
+    let days = Range::FromTo(date(2021, 11, 1), date(2021, 11, 3))
+      .get_datetimes()?
+      .into_iter()
+      .map(|dt| dt.date_naive())
+      .collect::<Vec<_>>();
+
+    assert_eq!(
+      days,
+      vec![date(2021, 11, 1), date(2021, 11, 2), date(2021, 11, 3),]
+    );
+
+    Ok(())
+  }
+
+  #[test]
+  fn yesterday_is_single_calendar_day() -> anyhow::Result<()> {
+    let expected = date(2024, 3, 14);
+
+    let (start, end) = Range::Yesterday.as_dates_from(fixed_now())?;
+
+    assert_eq!(start, expected);
+    assert_eq!(end, expected);
+    assert_eq!(Range::Yesterday.get_datetimes_from(fixed_now())?.len(), 1);
+
+    Ok(())
   }
 }
 
