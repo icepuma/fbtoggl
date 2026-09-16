@@ -489,10 +489,10 @@ pub fn edit(
 fn output_time_entry_raw(time_entry: &TimeEntry) {
   println!(
     "{}\t{}\t{}\t{}",
-    &time_entry.id,
-    &time_entry.start,
+    time_entry.id,
+    time_entry.start,
     time_entry.description.as_deref().unwrap_or(""),
-    &time_entry
+    time_entry
       .tags
       .as_ref()
       .map(|tags| tags.join(", "))
@@ -564,13 +564,13 @@ fn output_values_raw(output_entries: &[OutputEntry<'_>]) {
 
     println!(
       "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-      &entry.date,
+      entry.date,
       duration_text,
-      &entry.id,
-      &entry.workspace,
-      &entry.project,
-      &entry.client,
-      &entry.description,
+      entry.id,
+      entry.workspace,
+      entry.project,
+      entry.client,
+      entry.description,
       if entry.billable {
         "BILLABLE"
       } else {
